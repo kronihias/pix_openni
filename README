@@ -1,0 +1,64 @@
+
+pix_openni (0.02 experimenting...)
+======================================
+pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking, hand tracking
+
+* depends on OpenNI/NITE, SensorKinect
+
+2011/2012 by Matthias Kronlachner
+__________________________________________________________
+
+::INSTALL::
+just testet under Ubuntu but should also work in OSX and Windows
+
+
+*	get/install pd and Gem (http://puredata.info)
+
+*	get and install OpenNI, NITE and the hacked Primesense Kinect driver
+	--> instruction: https://github.com/avin2/SensorKinect
+
+*	edit Makefile for right path to Gem, pd and OpenNI sources
+
+*	#.../pix_openni> make
+
+*	have a look at the pix_openni-help.pd file!
+
+:: Usage ::
+
+Hand Tracking:
+
+to track multiple Hands edit following File: 
+	/usr/etc/primesense/Hands_1_4_1/Nite.ini
+and add or uncomment:
+
+	[HandTrackerManager]
+	AllowMultipleHands=1
+	TrackAdditionalHands=1
+
+_________________
+Changelog
+
+0.02
+	* output rgb and depth stream
+	* hand tracking
+	* change image and depth modes
+	* init without .xml init file
+	* fixed depth to rgb conversion for output_mode 1 & 2
+
+
+0.01
+	* skeleton and rgb or depth stream output
+
+ ________________
+:::THINGS TO DO:::
+
+*	motor and led control is currently not supported from the library
+	you can do that with pix_freenect
+
+*	clean shutdown of OpenNI framework -> currently you have to kill pd
+
+*	cpu performance optimization
+
+questions: m.kronlachner@gmail.com
+
+
