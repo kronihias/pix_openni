@@ -50,7 +50,8 @@ _________________
 Changelog
 
 0.02
-	* output rgb and depth stream
+	* OSX binaries
+	* output rgb and depth stream simultaneously
 	* hand tracking
 	* change image and depth modes
 	* init without .xml init file
@@ -63,13 +64,15 @@ Changelog
  ________________
 :::THINGS TO DO:::
 
-*	motor and led control is currently not supported from the library
+*	support for multiple Kinect
+
+*	motor and led control as well as audio is currently not supported from SensorKinect
 	you can do that with pix_freenect
 
 *	clean shutdown of OpenNI framework -> currently you have to kill pd
 
 *	cpu performance optimization
 
-questions: m.kronlachner@gmail.com
 
+questions: m.kronlachner@gmail.com
 
