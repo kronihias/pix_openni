@@ -3,7 +3,7 @@ pix_openni (0.02 experimenting...)
 ======================================
 pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking, hand tracking
 
-* depends on OpenNI/NITE, SensorKinect
+* depends on OpenNI, NITE, SensorKinect
 
 2011/2012 by Matthias Kronlachner
 __________________________________________________________
@@ -11,9 +11,15 @@ __________________________________________________________
 ::INSTALL::
 tested under Ubuntu and OSX 10.6.8, should run under Windows
 
-OSX: you don't have to compile it for yourself -> use included binaries from build folder
-but you still need OpenNI, NITE (latest unstable build for OSX) and SensorKinect --> see below
+OSX: 
+you don't have to compile the external for yourself -> use included binaries from build folder (copy pix_openni.pd_darwin in pix_openni folder)
+you still need OpenNI, NITE and SensorKinect!!
+* 	download latest OpenNI and NITE unstable build for OSX from http://www.openni.org/Downloads/OpenNIModules.aspx, 
+	sudo ./install.sh in the extracted folders
+*	install SensorKinect from https://github.com/avin2/SensorKinect
 
+
+Linux:
 *	get/install pd and Gem (http://puredata.info)
 
 *	get and install OpenNI, NITE and the hacked Primesense Kinect driver
@@ -28,10 +34,12 @@ but you still need OpenNI, NITE (latest unstable build for OSX) and SensorKinect
 
 :: Usage ::
 
+tbf…
+
 Hand Tracking:
 
 to track multiple Hands edit following File: 
-	/usr/etc/primesense/Hands_1_4_1/Nite.ini
+	/usr/etc/primesense/Hands_*/Nite.ini
 and add or uncomment:
 
 	[HandTrackerManager]
