@@ -9,13 +9,16 @@ pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking,
 __________________________________________________________
 
 ::INSTALL::
-just testet under Ubuntu but should also work in OSX and Windows
+tested under Ubuntu and OSX 10.6.8, should run under Windows
 
+OSX: you don't have to compile it for yourself -> use included binaries from build folder
+but you still need OpenNI, NITE (latest unstable build for OSX) and SensorKinect --> see below
 
 *	get/install pd and Gem (http://puredata.info)
 
 *	get and install OpenNI, NITE and the hacked Primesense Kinect driver
 	--> instruction: https://github.com/avin2/SensorKinect
+	http://www.openni.org/Downloads/OpenNIModules.aspx
 
 *	edit Makefile for right path to Gem, pd and OpenNI sources
 

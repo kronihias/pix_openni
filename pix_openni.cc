@@ -28,7 +28,7 @@ using namespace xn;
 	static int index_offset=0;
 #endif
 
-//CPPEXTERN_NEW_WITH_THREE_ARGS(pix_openni, t_float, A_DEFFLOAT, t_float, A_DEFFLOAT, t_float, A_DEFFLOAT);
+
 CPPEXTERN_NEW_WITH_GIMME(pix_openni);
 //---------------------------------------------------------------------------
 // Defines
@@ -43,7 +43,6 @@ CPPEXTERN_NEW_WITH_GIMME(pix_openni);
 #define MAX_DEPTH 10000
 
 #define GESTURE_TO_USE "Wave"
-
 
 //---------------------------------------------------------------------------
 // Globals
@@ -104,7 +103,7 @@ void XN_CALLBACK_TYPE Gesture_Process(xn::GestureGenerator& generator, const XnC
 
 void XN_CALLBACK_TYPE new_hand(xn::HandsGenerator &generator, XnUserID nId, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie) {
 	pix_openni *me = (pix_openni*)pCookie;
-	me->post("New Hand %d\n", nId);
+	//me->post("New Hand %d\n", nId);
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
@@ -115,7 +114,7 @@ void XN_CALLBACK_TYPE lost_hand(xn::HandsGenerator &generator, XnUserID nId, XnF
   gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
 
 	pix_openni *me = (pix_openni*)pCookie;
-	me->post("Lost Hand %d\n", nId);
+	//me->post("Lost Hand %d\n", nId);
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
@@ -148,7 +147,7 @@ void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, v
 {
 	pix_openni *me = (pix_openni*)pCookie;
 
-	me->post("New User %d\n", nId);
+	//me->post("New User %d\n", nId);
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
@@ -169,7 +168,7 @@ void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& generator, XnUserID nId, 
 {
 	pix_openni *me = (pix_openni*)pCookie;
 
-	me->post("Lost user %d\n", nId);
+	//me->post("Lost user %d\n", nId);
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
@@ -430,6 +429,7 @@ void *pix_openni::openni_thread_func(void*target)
 					if (rc != XN_STATUS_OK)
 					{
 						me->post("OpenNI:: skeleton node couldn't be created!");
+						me->skeleton_wanted = false;
 					} else {
 						XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress;
 						if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
@@ -522,16 +522,6 @@ void *pix_openni::openni_thread_func(void*target)
 
 void pix_openni :: startRendering(){
 	
-  m_image.image.xsize = m_width;
-  m_image.image.ysize = m_height;
-  m_image.image.csize=4; //RGBA
-  m_image.image.reallocate();
-  
-  m_depth.image.xsize = m_width;
-  m_depth.image.ysize = m_height;
-  m_depth.image.csize=4; //RGBA
-  m_depth.image.reallocate();
-  
   m_rendering=true;
 
   //return true;
@@ -565,14 +555,22 @@ void pix_openni :: render(GemState *state)
 			if (rc != XN_STATUS_OK)
 			{
 				post("OpenNI:: image node couldn't be created! %d", rc);
+				rgb_wanted=false;
 			} else {
 				XnMapOutputMode mapMode;
 				mapMode.nXRes = 640;
 				mapMode.nYRes = 480;
 				mapMode.nFPS = 30;
 				g_image.SetMapOutputMode(mapMode);
+				g_image.SetPixelFormat(XN_PIXEL_FORMAT_RGB24);
 				rgb_started = true;
 				g_context.StartGeneratingAll();
+				
+				m_image.image.xsize = mapMode.nXRes;
+			  m_image.image.ysize = mapMode.nYRes;
+			  m_image.image.setCsizeByFormat(GL_RGBA);
+			  m_image.image.reallocate();
+			
 				post("OpenNI:: Image node created!");
 			}
 		}
@@ -602,13 +600,13 @@ void pix_openni :: render(GemState *state)
 							
 					int i=0;
 					
-					while (i<=size-1) {
+					while (i<=size-1-index_offset) {
 						int num=(i%4)+floor(i/4)*3;
 						if ((i % 4)==3)
 							{
-									m_image.image.data[i]=1.0;
+									m_image.image.data[i+index_offset]=255.0;
 							}  else  {
-									m_image.image.data[i]=(unsigned char)pImage[num];
+									m_image.image.data[i+index_offset]=(unsigned char)pImage[num];
 							}
 						i++;
 					}
@@ -628,7 +626,8 @@ void pix_openni :: render(GemState *state)
 					rc = g_UserGenerator.Create(g_context);
 					if (rc != XN_STATUS_OK)
 					{
-						post("OpenNI:: skeleton node couldn't be created!");
+						post("OpenNI:: skeleton node couldn't be created! %s", xnGetStatusString(rc));
+						skeleton_wanted=false;
 					} else {
 						XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress;
 						if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
@@ -637,11 +636,11 @@ void pix_openni :: render(GemState *state)
 						}
 						
 						rc = g_UserGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, this, hUserCallbacks);
-						post("Register to user callbacks", rc);
+						post("Register to user callbacks: %s", xnGetStatusString(rc));
 						rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, hCalibrationStart);
-						post("Register to calibration start", rc);
+						post("Register to calibration start: %s", xnGetStatusString(rc));
 						rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationComplete, this, hCalibrationComplete);
-						post("Register to calibration complete", rc);
+						post("Register to calibration complete: %s", xnGetStatusString(rc));
 
 						if (g_UserGenerator.GetSkeletonCap().NeedPoseForCalibration())
 						{
@@ -712,11 +711,13 @@ void pix_openni :: render(GemState *state)
 			if (rc != XN_STATUS_OK)
 			{
 				post("OpenNI:: HandsGenerator node couldn't be created!");
+				hand_wanted=false;
 			}
 			rc = gestureGenerator.Create(g_context);
 			if (rc != XN_STATUS_OK)
 			{
 				post("OpenNI:: GestureGenerator node couldn't be created!");
+				hand_wanted=false;
 			}
 			rc = gestureGenerator.RegisterGestureCallbacks(Gesture_Recognized, Gesture_Process, this, hGestureCallbacks);
 			post("RegisterGestureCallbacks: %s\n", xnGetStatusString(rc));
@@ -760,6 +761,7 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 				if (rc != XN_STATUS_OK)
 				{
 					post("OpenNI:: Depth node couldn't be created!");
+					depth_wanted=false;
 				} else {
 					XnMapOutputMode mapMode;
 					mapMode.nXRes = 640;
@@ -769,6 +771,11 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					depth_started = true;
 					g_context.StartGeneratingAll();
 					post("OpenNI:: Depth node created!");
+					
+					m_depth.image.xsize = mapMode.nXRes;
+				  m_depth.image.ysize = mapMode.nYRes;
+				  m_depth.image.setCsizeByFormat(GL_RGBA);
+				  m_depth.image.reallocate();
 				}
 			}
 		}

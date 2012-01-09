@@ -14,7 +14,7 @@
 #X obj 416 2 loadbang;
 #X text 264 151 sceleton out;
 #X obj 245 208 print outlet;
-#X obj 178 119 gemhead;
+#X obj 226 129 gemhead;
 #X obj 295 303 pix_texture;
 #X obj 295 400 rectangle 4 3;
 #X obj 332 381 * 4;
@@ -22,7 +22,7 @@
 #X floatatom 332 363 5 0 0 0 - - -;
 #X obj 332 323 loadbang;
 #X obj 109 226 translateXYZ -3 2 0;
-#N canvas 711 358 499 298 properties 1;
+#N canvas 711 358 499 298 properties 0;
 #X obj 55 232 outlet;
 #X msg 55 201 rgb \$1;
 #X obj 55 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
@@ -34,14 +34,28 @@
 -1 -1 0;
 #X msg 180 201 skeleton \$1;
 #X obj 271 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 0;
+-1 -1 1;
 #X msg 271 201 hand \$1;
 #X text 52 138 turn on/off streams;
 #X msg 357 199 depth_output \$1;
-#X obj 357 181 hradio 15 1 0 3 empty empty empty 0 -8 0 10 -262144
--1 -1 2;
-#X msg 351 103 depth_mode 640 480 30;
-#X msg 351 132 video_mode 640 480 30;
+#N canvas 0 22 383 269 video_modes 0;
+#X msg 138 86 depth_mode 640 480 30;
+#X msg -44 88 video_mode 640 480 30;
+#X msg -34 108 video_mode 1280 1024 15;
+#X obj -38 196 outlet;
+#X text -20 16 change video/depth mode of OpenNI;
+#X msg 79 177 bang;
+#X text 117 177 view available modes;
+#X connect 0 0 3 0;
+#X connect 1 0 3 0;
+#X connect 2 0 3 0;
+#X connect 5 0 3 0;
+#X restore 169 244 pd video_modes;
+#X obj 357 144 vradio 15 1 0 3 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X text 376 141 normal -> human;
+#X text 377 157 grey;
+#X text 378 173 raw -> r&g channel;
 #X connect 1 0 0 0;
 #X connect 2 0 1 0;
 #X connect 3 0 4 0;
@@ -51,9 +65,8 @@
 #X connect 7 0 8 0;
 #X connect 8 0 0 0;
 #X connect 10 0 0 0;
-#X connect 11 0 10 0;
-#X connect 12 0 0 0;
-#X connect 13 0 0 0;
+#X connect 11 0 0 0;
+#X connect 12 0 10 0;
 #X restore 61 93 pd properties;
 #X text -56 6 pix_openni 0.02 experimental!!;
 #X text -58 24 (C)2011/2012 Matthias Kronlachner;
@@ -214,7 +227,7 @@
 #X connect 3 0 0 0;
 #X connect 3 0 1 0;
 #X connect 3 0 2 0;
-#X restore 198 182 pd visualize_tracking;
+#X restore 226 182 pd visualize_tracking;
 #X text 610 95 arguments:;
 #X text 613 133 2nd: rgb stream on;
 #X text 613 149 3rd: depth stream on;
@@ -224,7 +237,7 @@
 #X msg 26 144 bang;
 #X obj 109 155 pix_openni 0 1 1 0 0;
 #X text -51 164 view available modes;
-#N canvas 1 340 857 435 distance_measurement 1;
+#N canvas 1 340 857 435 distance_measurement 0;
 #X obj -106 43 inlet;
 #X obj -196 90 pix_data;
 #X floatatom -57 54 5 0 0 0 - - -;
@@ -238,7 +251,7 @@
 #X obj -210 202 * 65536;
 #X obj -210 232 +;
 #X obj -196 48 metro 100;
-#X obj -196 25 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+#X obj -196 25 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
 #X text -129 88 output pixel rgb value;
 #X text -92 140 r g b;
@@ -248,7 +261,7 @@
 #X text 121 65 (from depth image);
 #X text -178 24 ON/OFF;
 #X obj -210 314 nbx 5 60 -1e+37 1e+37 0 0 empty empty m 300 22 0 60
--262144 -1 -1 3.28985 256;
+-262144 -1 -1 0 256;
 #X obj -210 260 / 1000;
 #X obj -57 7 loadbang;
 #X text 12 10 for distance measurement use !!!raw depth output!!!;
