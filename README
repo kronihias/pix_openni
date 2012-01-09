@@ -9,7 +9,7 @@ pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking,
 __________________________________________________________
 
 ::INSTALL::
-tested under Ubuntu and OSX 10.6.8, should run under Windows
+tested under Ubuntu and OSX 10.6.8, should run under Windows if you know how to compile it
 
 OSX: 
 you don't have to compile the external for yourself -> use included binaries from build folder (copy pix_openni.pd_darwin in pix_openni folder)
@@ -34,7 +34,7 @@ Linux:
 
 :: Usage ::
 
-tbfÉ
+tbf...
 
 Hand Tracking:
 
@@ -67,9 +67,9 @@ Changelog
 *	support for multiple Kinect
 
 *	motor and led control as well as audio is currently not supported from SensorKinect
-	you can do that with pix_freenect
+	you can do that with pd external freenect: http://github.com/kronihias/freenect
 
-*	clean shutdown of OpenNI framework -> currently you have to kill pd
+*	clean shutdown of OpenNI framework -> currently you have to kill pd at least under linux
 
 *	cpu performance optimization
 
