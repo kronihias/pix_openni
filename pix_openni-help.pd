@@ -22,7 +22,7 @@
 #X floatatom 332 363 5 0 0 0 - - -;
 #X obj 332 323 loadbang;
 #X obj 109 226 translateXYZ -3 2 0;
-#N canvas 711 358 499 298 properties 0;
+#N canvas 711 358 499 298 properties 1;
 #X obj 55 232 outlet;
 #X msg 55 201 rgb \$1;
 #X obj 55 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
@@ -31,7 +31,7 @@
 -1 -1 0;
 #X msg 112 201 depth \$1;
 #X obj 180 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 0;
+-1 -1 1;
 #X msg 180 201 skeleton \$1;
 #X obj 271 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
 -1 -1 1;
@@ -56,6 +56,9 @@
 #X text 376 141 normal -> human;
 #X text 377 157 grey;
 #X text 378 173 raw -> r&g channel;
+#X text 35 16 properties for pix_openni;
+#X text 77 165 OFF;
+#X text 77 181 ON;
 #X connect 1 0 0 0;
 #X connect 2 0 1 0;
 #X connect 3 0 4 0;
@@ -70,8 +73,6 @@
 #X restore 61 93 pd properties;
 #X text -56 6 pix_openni 0.02 experimental!!;
 #X text -58 24 (C)2011/2012 Matthias Kronlachner;
-#X msg 146 295 0.4;
-#X msg 332 343 0.4;
 #X obj 295 274 translateXYZ 3 2 0;
 #N canvas 1 151 319 137 pix_info 0;
 #X obj -17 39 pix_info ____________________;
@@ -285,34 +286,36 @@
 #X connect 22 0 21 0;
 #X connect 23 0 8 0;
 #X restore 416 422 pd distance_measurement;
-#X connect 0 0 40 0;
+#X msg 146 295 0.5;
+#X msg 332 343 0.5;
+#X connect 0 0 38 0;
 #X connect 2 0 1 0;
 #X connect 3 0 1 0;
 #X connect 4 0 6 0;
 #X connect 5 0 1 0;
-#X connect 6 0 29 0;
+#X connect 6 0 27 0;
 #X connect 7 0 6 1;
 #X connect 8 0 6 2;
 #X connect 9 0 7 0;
 #X connect 9 0 8 0;
-#X connect 10 0 26 0;
+#X connect 10 0 41 0;
 #X connect 11 0 1 0;
 #X connect 12 0 11 0;
-#X connect 15 0 40 1;
+#X connect 15 0 38 1;
 #X connect 16 0 17 0;
-#X connect 17 0 30 0;
-#X connect 17 0 42 0;
+#X connect 17 0 28 0;
+#X connect 17 0 40 0;
 #X connect 18 0 17 1;
 #X connect 19 0 17 2;
 #X connect 20 0 18 0;
 #X connect 20 0 19 0;
-#X connect 21 0 27 0;
+#X connect 21 0 42 0;
 #X connect 22 0 4 0;
-#X connect 23 0 40 0;
-#X connect 26 0 9 0;
-#X connect 27 0 20 0;
-#X connect 28 0 16 0;
-#X connect 39 0 40 0;
-#X connect 40 0 22 0;
-#X connect 40 1 28 0;
-#X connect 40 2 32 0;
+#X connect 23 0 38 0;
+#X connect 26 0 16 0;
+#X connect 37 0 38 0;
+#X connect 38 0 22 0;
+#X connect 38 1 26 0;
+#X connect 38 2 30 0;
+#X connect 41 0 9 0;
+#X connect 42 0 20 0;
