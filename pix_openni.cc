@@ -107,7 +107,13 @@ void XN_CALLBACK_TYPE new_hand(xn::HandsGenerator &generator, XnUserID nId, cons
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
-	outlet_anything(me->m_dataout, gensym("new_hand"), 1, ap);
+	if (me->m_osc_output)
+	{
+		outlet_anything(me->m_dataout, gensym("/hand/new_hand"), 1, ap);
+	} else {
+		outlet_anything(me->m_dataout, gensym("new_hand"), 1, ap);
+	}
+
 
 }
 void XN_CALLBACK_TYPE lost_hand(xn::HandsGenerator &generator, XnUserID nId, XnFloat fTime, void *pCookie) {
@@ -118,27 +124,44 @@ void XN_CALLBACK_TYPE lost_hand(xn::HandsGenerator &generator, XnUserID nId, XnF
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
-	outlet_anything(me->m_dataout, gensym("lost_hand"), 1, ap);
+	
+	if (me->m_osc_output)
+	{
+		outlet_anything(me->m_dataout, gensym("/hand/lost_hand"), 1, ap);
+	} else {
+		outlet_anything(me->m_dataout, gensym("lost_hand"), 1, ap);
+	}
 }
 void XN_CALLBACK_TYPE update_hand(xn::HandsGenerator &generator, XnUserID nID, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie) {
 	pix_openni *me = (pix_openni*)pCookie;
 	
 	float jointCoords[3];
 	
-	jointCoords[0] = off_x + (mult_x * (480 - pPosition->X) / 960); //Normalize coords to 0..1 interval
-	jointCoords[1] = off_y + (mult_y * (320 - pPosition->Y) / 640); //Normalize coords to 0..1 interval
-	jointCoords[2] = off_z + (mult_z * pPosition->Z * 7.8125 / 10000); //Normalize coords to 0..7.8125 interval
-	
+	if (me->m_real_world_coords)
+	{
+		jointCoords[0] = pPosition->X; //Normalize coords to 0..1 interval
+		jointCoords[1] = pPosition->Y; //Normalize coords to 0..1 interval
+		jointCoords[2] = pPosition->Z; //Normalize coords to 0..7.8125 interval
+	}
+	if (!me->m_real_world_coords)
+	{
+		jointCoords[0] = off_x + (mult_x * (480 - pPosition->X) / 960); //Normalize coords to 0..1 interval
+		jointCoords[1] = off_y + (mult_y * (320 - pPosition->Y) / 640); //Normalize coords to 0..1 interval
+		jointCoords[2] = off_z + (mult_z * pPosition->Z * 7.8125 / 10000); //Normalize coords to 0..7.8125 interval
+	}
 
-	//me->post("Hand Coordinates %d\n", nId);
 	t_atom ap[4];
 		
 	SETFLOAT (ap+0, (int)nID);
 	SETFLOAT (ap+1, jointCoords[0]);
 	SETFLOAT (ap+2, jointCoords[1]);
 	SETFLOAT (ap+3, jointCoords[2]);
-
-	outlet_anything(me->m_dataout, gensym("hand"), 4, ap);
+	if (me->m_osc_output)
+	{
+		outlet_anything(me->m_dataout, gensym("/hand/coords"), 4, ap);
+	} else {
+		outlet_anything(me->m_dataout, gensym("hand"), 4, ap);
+	}
 }
 
 // Sceleton Callbacks
@@ -151,7 +174,13 @@ void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, v
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
-	outlet_anything(me->m_dataout, gensym("new_user"), 1, ap);
+	
+	if (me->m_osc_output)
+	{
+		outlet_anything(me->m_dataout, gensym("/skeleton/new_user"), 1, ap);
+	} else {
+		outlet_anything(me->m_dataout, gensym("new_user"), 1, ap);
+	}
 	
 	// New user found
 	if (g_bNeedPose)
@@ -167,12 +196,15 @@ void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, v
 void XN_CALLBACK_TYPE User_LostUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
 {
 	pix_openni *me = (pix_openni*)pCookie;
-
-	//me->post("Lost user %d\n", nId);
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
-	outlet_anything(me->m_dataout, gensym("lost_user"), 1, ap);
+	if (me->m_osc_output)
+	{
+		outlet_anything(me->m_dataout, gensym("/skeleton/lost_user"), 1, ap);
+	} else {
+		outlet_anything(me->m_dataout, gensym("lost_user"), 1, ap);
+	}
 }
 // Callback: Detected a pose
 void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& capability, const XnChar* strPose, XnUserID nId, void* pCookie)
@@ -183,8 +215,13 @@ void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& capabil
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
-	outlet_anything(me->m_dataout, gensym("pose_detected"), 1, ap);
-	
+	if (me->m_osc_output)
+	{
+		outlet_anything(me->m_dataout, gensym("/skeleton/pose_detected"), 1, ap);
+	} else {
+		outlet_anything(me->m_dataout, gensym("pose_detected"), 1, ap);
+	}
+
 	g_UserGenerator.GetPoseDetectionCap().StopPoseDetection(nId);
 	g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
 }
@@ -196,7 +233,12 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& c
 	
 	t_atom ap[1];
 	SETFLOAT (ap, (int)nId);
-	outlet_anything(me->m_dataout, gensym("calib_started"), 1, ap);
+	if (me->m_osc_output)
+	{
+		outlet_anything(me->m_dataout, gensym("/skeleton/calib_started"), 1, ap);
+	} else {
+		outlet_anything(me->m_dataout, gensym("calib_started"), 1, ap);
+	}
 }
 // Callback: Finished calibration
 void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& capability, XnUserID nId, XnBool bSuccess, void* pCookie)
@@ -211,7 +253,13 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& cap
 		// Calibration succeeded
 		//me->post("Calibration complete, start tracking user %d\n", nId);
 
-		outlet_anything(me->m_dataout, gensym("new_skel"), 1, ap);
+		if (me->m_osc_output)
+		{
+			outlet_anything(me->m_dataout, gensym("/skeleton/new_skel"), 1, ap);
+		} else {
+			outlet_anything(me->m_dataout, gensym("new_skel"), 1, ap);
+		}
+
 	
 		g_UserGenerator.GetSkeletonCap().StartTracking(nId);
 	}
@@ -220,7 +268,13 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& cap
 		// Calibration failed
 		//post("Calibration failed for user %d\n", nId);
 		
-		outlet_anything(me->m_dataout, gensym("new_skel_failed"), 1, ap);
+		if (me->m_osc_output)
+		{
+			outlet_anything(me->m_dataout, gensym("/skeleton/new_skel_failed"), 1, ap);
+		} else {
+			outlet_anything(me->m_dataout, gensym("new_skel_failed"), 1, ap);
+		}
+		
 		if (g_bNeedPose)
 		{
 			g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
@@ -243,8 +297,13 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability
 	{
 		// Calibration succeeded
 		//me->post("Calibration complete, start tracking user %d\n", nId);
-		
-		outlet_anything(me->m_dataout, gensym("new_skel"), 1, ap);
+
+		if (me->m_osc_output)
+		{
+			outlet_anything(me->m_dataout, gensym("/skeleton/new_skel"), 1, ap);
+		} else {
+			outlet_anything(me->m_dataout, gensym("new_skel"), 1, ap);
+		}
 	
 		g_UserGenerator.GetSkeletonCap().StartTracking(nId);
 		g_UserGenerator.GetSkeletonCap().StartTracking(nId);
@@ -253,7 +312,14 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability
 	{
 		// Calibration failed
 		//me->post("Calibration failed for user %d\n", nId);
-		outlet_anything(me->m_dataout, gensym("new_skel_failed"), 1, ap);
+		
+		if (me->m_osc_output)
+		{
+			outlet_anything(me->m_dataout, gensym("/skeleton/new_skel_failed"), 1, ap);
+		} else {
+			outlet_anything(me->m_dataout, gensym("new_skel_failed"), 1, ap);
+		}
+		
 		if (g_bNeedPose)
 		{
 			g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
@@ -283,7 +349,7 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 
 	m_dataout = outlet_new(this->x_obj, 0);
 
-	post("pix_openni 0.02 - experimental - 2011/2012 by Matthias Kronlachner");
+	post("pix_openni 0.03 - experimental - 2011/2012 by Matthias Kronlachner");
 
 	// init status variables
 	depth_wanted = false;
@@ -297,6 +363,9 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	
 	openni_ready = false;
 	destroy_thread = false;
+	
+	m_osc_output = false;
+	m_real_world_coords = false;
 	
 	depth_output = 0;
 	req_depth_output = 0;
@@ -428,7 +497,7 @@ void *pix_openni::openni_thread_func(void*target)
 					rc = g_UserGenerator.Create(g_context);
 					if (rc != XN_STATUS_OK)
 					{
-						me->post("OpenNI:: skeleton node couldn't be created!");
+						me->post("OpenNI:: skeleton node couldn't be created! %s", xnGetStatusString(rc));
 						me->skeleton_wanted = false;
 					} else {
 						XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress;
@@ -619,10 +688,14 @@ void pix_openni :: render(GemState *state)
 			
 			
 			// SKELETON CODE IN RENDER METHOD!! -> PACK INTO THREAD!
+
 			if (skeleton_wanted && !skeleton_started)
 			{
 				post("trying to start skeleton...");
-
+					rc = g_context.FindExistingNode(XN_NODE_TYPE_USER, g_UserGenerator);
+					//if (nRetVal != XN_STATUS_OK)
+					post("OpenNI:: skeleton found skeleton? : %s", xnGetStatusString(rc));
+					
 					rc = g_UserGenerator.Create(g_context);
 					if (rc != XN_STATUS_OK)
 					{
@@ -932,26 +1005,35 @@ void pix_openni :: outputJoint (XnUserID player, XnSkeletonJoint eJoint)
 {
 	t_atom ap[5];
 	float jointCoords[3];
-	
+
 	XnSkeletonJointTransformation jointTrans;
 
 	g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(player, eJoint, jointTrans);
 
 	posConfidence = jointTrans.position.fConfidence;
-	
-	jointCoords[0] = off_x + (mult_x * (1280 - jointTrans.position.position.X) / 2560); //Normalize coords to 0..1 interval
-	jointCoords[1] = off_y + (mult_y * (960 - jointTrans.position.position.Y) / 1920); //Normalize coords to 0..1 interval
-	jointCoords[2] = off_z + (mult_z * jointTrans.position.position.Z * 7.8125 / 10000); //Normalize coords to 0..7.8125 interval
- 
-	switch(eJoint)
+
+	if (m_real_world_coords)
 	{
-		case 1:
+		jointCoords[0] = jointTrans.position.position.X; //Normalize coords to 0..1 interval
+		jointCoords[1] = jointTrans.position.position.Y; //Normalize coords to 0..1 interval
+		jointCoords[2] = jointTrans.position.position.Z; //Normalize coords to 0..7.8125 interval
+	} else {
+		jointCoords[0] = off_x + (mult_x * (1280 - jointTrans.position.position.X) / 2560); //Normalize coords to 0..1 interval
+		jointCoords[1] = off_y + (mult_y * (960 - jointTrans.position.position.Y) / 1920); //Normalize coords to 0..1 interval
+		jointCoords[2] = off_z + (mult_z * jointTrans.position.position.Z * 7.8125 / 10000); //Normalize coords to 0..7.8125 interval
+	}
+
+	if (!m_osc_output)
+	{
+		switch(eJoint)
+		{
+			case 1:
 			SETSYMBOL (ap+0, gensym("head")); break;
-		case 2:
+			case 2:
 			SETSYMBOL (ap+0, gensym("neck")); break;
-		case 3:
+			case 3:
 			SETSYMBOL (ap+0, gensym("torso")); break;
-		case 4:
+			case 4:
 			SETSYMBOL (ap+0, gensym("waist")); break;
 		case 5:
 			SETSYMBOL (ap+0, gensym("l_collar")); break;
@@ -1001,6 +1083,68 @@ void pix_openni :: outputJoint (XnUserID player, XnSkeletonJoint eJoint)
 	SETFLOAT (ap+4, jointCoords[2]);
 
 	outlet_anything(m_dataout, gensym("joint"), 5, ap);
+}
+
+// OUTPUT IN OSC STYLE -> /joint/l_foot id x y z
+if (m_osc_output)
+{
+	SETFLOAT (ap+0, (int)player);
+	SETFLOAT (ap+1, jointCoords[0]);
+	SETFLOAT (ap+2, jointCoords[1]);
+	SETFLOAT (ap+3, jointCoords[2]);
+	
+	switch(eJoint)
+	{
+		case 1:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/head"), 4, ap); break;
+		case 2:
+				outlet_anything(m_dataout, gensym("/skeleton/joint/neck"), 4, ap); break;
+		case 3:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/torso"), 4, ap); break;
+		case 4:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/waist"), 4, ap); break;
+		case 5:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_collar"), 4, ap); break;
+		case 6:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_shoulder"), 4, ap); break;
+		case 7:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_elbow"), 4, ap); break;
+		case 8:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_wrist"), 4, ap); break;
+		case 9:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hand"), 4, ap); break;
+		case 10:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_fingertip"), 4, ap); break;
+		case 11:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_collar"), 4, ap); break;
+		case 12:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_shoulder"), 4, ap); break;
+		case 13:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_elbow"), 4, ap); break;
+		case 14:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_wrist"), 4, ap); break;
+		case 15:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hand"), 4, ap); break;
+		case 16:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_fingertip"), 4, ap); break;
+		case 17:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hip"), 4, ap); break;
+		case 18:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_knee"), 4, ap); break;
+		case 19:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_ankle"), 4, ap); break;
+		case 20:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_foot"), 4, ap); break;
+		case 21:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hip"), 4, ap); break;
+		case 22:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_knee"), 4, ap); break;
+		case 23:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_ankle"), 4, ap); break;
+		case 24:
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_foot"), 4, ap); break;
+	}
+}
 }
 
 //////////////////////////////////////////
@@ -1092,8 +1236,13 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
   		  gensym("hand"), A_FLOAT, A_NULL);
   class_addmethod(classPtr, (t_method)&pix_openni::floatDepthOutputMessCallback,
   		  gensym("depth_output"), A_FLOAT, A_NULL);
-  		  
-  		   		  
+	class_addmethod(classPtr, (t_method)&pix_openni::floatRegistrationMessCallback,
+	  	  gensym("registration"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatRealWorldCoordsMessCallback,
+	  	  gensym("real_world_coords"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatOscOutputMessCallback,
+	  	  gensym("osc_style_output"), A_FLOAT, A_NULL);
+
   class_addmethod(classPtr, (t_method)(&pix_openni::renderDepthCallback),
                   gensym("depth_state"), A_GIMME, A_NULL);
 }
@@ -1120,6 +1269,47 @@ void pix_openni :: floatDepthOutputMessCallback(void *data, t_floatarg depth_out
 		me->req_depth_output=(int)depth_output;
 }
 
+void pix_openni :: floatRealWorldCoordsMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((int)value == 0)
+		me->m_real_world_coords=false;
+  if ((int)value == 1)
+		me->m_real_world_coords=true;
+}
+
+void pix_openni :: floatRegistrationMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+	int nRetVal = 0;
+	if ((int)value == 1)
+	{
+		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		{
+			nRetVal = g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
+		}
+		me->post("changed to registered depth mode. %s", xnGetStatusString(nRetVal));
+	}
+	
+	if ((int)value == 0)
+	{
+		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		{
+			nRetVal = g_depth.GetAlternativeViewPointCap().ResetViewPoint();
+		}
+		me->post("changed to unregistered depth mode. %s", xnGetStatusString(nRetVal));
+	}
+}
+
+void pix_openni :: floatOscOutputMessCallback(void *data, t_floatarg osc_output)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((int)osc_output == 0)
+		me->m_osc_output=false;
+  if ((int)osc_output == 1)
+		me->m_osc_output=true;
+}
+
 void pix_openni :: floatRgbMessCallback(void *data, t_floatarg rgb)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
@@ -1127,13 +1317,11 @@ void pix_openni :: floatRgbMessCallback(void *data, t_floatarg rgb)
 		me->rgb_wanted=false;
   if ((int)rgb == 1)
 		me->rgb_wanted=true;
-	//me->post("rgb %i", (int)rgb);
 }
 
 void pix_openni :: floatDepthMessCallback(void *data, t_floatarg depth)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
-  //me->post("daa %i", (int)depth);
   if ((int)depth == 0)
 		me->depth_wanted=false;
   if ((int)depth == 1)
@@ -1143,7 +1331,6 @@ void pix_openni :: floatDepthMessCallback(void *data, t_floatarg depth)
 void pix_openni :: floatSkeletonMessCallback(void *data, t_floatarg skeleton)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
-  //me->post("daa %i", (int)depth);
   if ((int)skeleton == 0)
 		me->skeleton_wanted=false;
   if ((int)skeleton == 1)
@@ -1153,7 +1340,6 @@ void pix_openni :: floatSkeletonMessCallback(void *data, t_floatarg skeleton)
 void pix_openni :: floatHandMessCallback(void *data, t_floatarg hand)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
-  //me->post("daa %i", (int)depth);
   if ((int)hand == 0)
 		me->hand_wanted=false;
   if ((int)hand == 1)

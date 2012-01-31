@@ -1,1 +1,3 @@
 install_name_tool -change ../../Bin/x86-Release/libOpenNI.dylib /usr/lib/libOpenNI.dylib pix_openni.pd_darwin
+
+install_name_tool -change /sw/lib/libOpenNI.dylib /usr/lib/libOpenNI.dylib pix_openni.pd_darwin

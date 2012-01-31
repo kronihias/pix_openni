@@ -1,4 +1,4 @@
-#N canvas 130 308 933 467 10;
+#N canvas 254 252 933 467 10;
 #X obj 109 120 gemhead;
 #X obj 247 54 gemwin;
 #X msg 247 22 dimen 640 480 \, create \, 1;
@@ -12,8 +12,6 @@
 #X obj 145 277 loadbang;
 #X msg 416 24 lighting 1;
 #X obj 416 2 loadbang;
-#X text 264 151 sceleton out;
-#X obj 245 208 print outlet;
 #X obj 226 129 gemhead;
 #X obj 295 303 pix_texture;
 #X obj 295 400 rectangle 4 3;
@@ -22,57 +20,91 @@
 #X floatatom 332 363 5 0 0 0 - - -;
 #X obj 332 323 loadbang;
 #X obj 109 226 translateXYZ -3 2 0;
-#N canvas 711 358 499 298 properties 1;
-#X obj 55 232 outlet;
-#X msg 55 201 rgb \$1;
-#X obj 55 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+#N canvas 360 100 909 439 properties 0;
+#X text 14 17 properties for pix_openni;
+#X obj 39 54 cnv 15 300 150 empty empty empty 20 12 0 14 -232576 -66577
+0;
+#X msg 55 122 rgb \$1;
+#X obj 55 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 0;
-#X obj 112 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+#X obj 112 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+-1 0;
+#X msg 112 122 depth \$1;
+#X obj 180 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+-1 0;
+#X msg 180 122 skeleton \$1;
+#X obj 271 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+-1 0;
+#X msg 271 122 hand \$1;
+#X text 77 86 OFF;
+#X text 77 102 ON;
+#X obj 54 162 s \$0-prop;
+#X text 49 59 TURN ON/OFF STREAMS;
+#X obj 363 55 cnv 15 300 150 empty empty empty 20 12 0 14 -260097 -66577
+0;
+#X msg 400 130 depth_mode 640 480 30;
+#X msg 374 83 video_mode 640 480 30;
+#X msg 384 102 video_mode 1280 1024 15;
+#X text 376 59 change video/depth mode of OpenNI;
+#X msg 497 151 bang;
+#X text 535 151 view available modes;
+#X obj 379 170 s \$0-prop;
+#X obj 38 222 cnv 15 300 150 empty empty empty 20 12 0 14 -204800 -66577
+0;
+#X msg 45 305 depth_output \$1;
+#X obj 45 250 vradio 15 1 0 3 empty empty empty 0 -8 0 10 -262144 -1
+-1 0;
+#X msg 230 308 registration \$1;
+#X obj 230 274 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
 -1 -1 0;
-#X msg 112 201 depth \$1;
-#X obj 180 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 1;
-#X msg 180 201 skeleton \$1;
-#X obj 271 167 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 1;
-#X msg 271 201 hand \$1;
-#X text 52 138 turn on/off streams;
-#X msg 357 199 depth_output \$1;
-#N canvas 0 22 383 269 video_modes 0;
-#X msg 138 86 depth_mode 640 480 30;
-#X msg -44 88 video_mode 640 480 30;
-#X msg -34 108 video_mode 1280 1024 15;
-#X obj -38 196 outlet;
-#X text -20 16 change video/depth mode of OpenNI;
-#X msg 79 177 bang;
-#X text 117 177 view available modes;
-#X connect 0 0 3 0;
-#X connect 1 0 3 0;
-#X connect 2 0 3 0;
-#X connect 5 0 3 0;
-#X restore 169 244 pd video_modes;
-#X obj 357 144 vradio 15 1 0 3 empty empty empty 0 -8 0 10 -262144
+#X obj 45 339 s \$0-prop;
+#X text 41 223 DEPTH OUTPUT PROPERTIES;
+#X obj 364 223 cnv 15 300 150 empty empty empty 20 12 0 14 -162280
+-66577 0;
+#X obj 407 317 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
 -1 -1 0;
-#X text 376 141 normal -> human;
-#X text 377 157 grey;
-#X text 378 173 raw -> r&g channel;
-#X text 35 16 properties for pix_openni;
-#X text 77 165 OFF;
-#X text 77 181 ON;
-#X connect 1 0 0 0;
-#X connect 2 0 1 0;
-#X connect 3 0 4 0;
-#X connect 4 0 0 0;
-#X connect 5 0 6 0;
-#X connect 6 0 0 0;
-#X connect 7 0 8 0;
-#X connect 8 0 0 0;
-#X connect 10 0 0 0;
-#X connect 11 0 0 0;
-#X connect 12 0 10 0;
-#X restore 61 93 pd properties;
-#X text -56 6 pix_openni 0.02 experimental!!;
-#X text -58 24 (C)2011/2012 Matthias Kronlachner;
+#X text 429 315 OFF;
+#X text 429 331 ON;
+#X obj 406 255 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X text 425 253 OFF;
+#X text 425 269 ON;
+#X msg 406 289 real_world_coords \$1;
+#X msg 407 351 osc_style_output \$1;
+#X text 456 266 z: 0-7;
+#X text 455 253 if OFF x and y are normalized 0-1;
+#X text 390 226 tracking data properties (skeleton \, hand);
+#X obj 369 378 s \$0-prop;
+#X text 456 314 -> joint r_hand id x y z;
+#X text 451 330 -> /skeleton/joint/r_hand id x y z;
+#X text 232 239 Match viewpoints;
+#X text 232 254 of RGB and Depth;
+#X text 248 271 OFF;
+#X text 248 287 ON;
+#X text 64 247 normal -> human viewable;
+#X text 65 263 greyscale;
+#X text 66 279 raw -> mm in r&g channel;
+#X connect 2 0 12 0;
+#X connect 3 0 2 0;
+#X connect 4 0 5 0;
+#X connect 5 0 12 0;
+#X connect 6 0 7 0;
+#X connect 7 0 12 0;
+#X connect 8 0 9 0;
+#X connect 9 0 12 0;
+#X connect 15 0 21 0;
+#X connect 16 0 21 0;
+#X connect 17 0 21 0;
+#X connect 19 0 21 0;
+#X connect 23 0 27 0;
+#X connect 24 0 23 0;
+#X connect 25 0 27 0;
+#X connect 26 0 25 0;
+#X connect 30 0 37 0;
+#X connect 33 0 36 0;
+#X connect 36 0 41 0;
+#X connect 37 0 41 0;
+#X restore 43 87 pd properties;
 #X obj 295 274 translateXYZ 3 2 0;
 #N canvas 1 151 319 137 pix_info 0;
 #X obj -17 39 pix_info ____________________;
@@ -108,7 +140,6 @@
 #X connect 0 6 6 0;
 #X connect 7 0 0 0;
 #X restore 295 426 pd pix_info;
-#X text -60 44 depends on OpenNI \, NITE and SensorKinect;
 #N canvas 1 89 450 300 visualize_tracking 0;
 #X obj 32 83 gem_sceleton;
 #N canvas 527 306 675 356 status_msg 0;
@@ -235,10 +266,8 @@
 #X text 613 165 4th: skeleton tracking on;
 #X text 614 182 5th: hand tracking on;
 #X text 613 117 1st: kinect ID/serial --> just dummy;
-#X msg 26 144 bang;
 #X obj 109 155 pix_openni 0 1 1 0 0;
-#X text -51 164 view available modes;
-#N canvas 1 340 857 435 distance_measurement 0;
+#N canvas 35 339 857 435 distance_measurement 0;
 #X obj -106 43 inlet;
 #X obj -196 90 pix_data;
 #X floatatom -57 54 5 0 0 0 - - -;
@@ -288,34 +317,42 @@
 #X restore 416 422 pd distance_measurement;
 #X msg 146 295 0.5;
 #X msg 332 343 0.5;
-#X connect 0 0 38 0;
+#X text 233 166 sceleton output;
+#X obj 43 120 r \$0-prop;
+#X obj -54 6 cnv 15 250 60 empty empty empty 20 12 0 14 -232576 -66577
+0;
+#X text -52 24 (C)2011/2012 Matthias Kronlachner;
+#X text -54 44 depends on OpenNI \, NITE and SensorKinect;
+#X text -50 6 pix_openni 0.03 experimental!!;
+#X text 110 400 RGB Image;
+#X text 297 252 DEPTH Image;
+#X connect 0 0 32 0;
 #X connect 2 0 1 0;
 #X connect 3 0 1 0;
 #X connect 4 0 6 0;
 #X connect 5 0 1 0;
-#X connect 6 0 27 0;
+#X connect 6 0 23 0;
 #X connect 7 0 6 1;
 #X connect 8 0 6 2;
 #X connect 9 0 7 0;
 #X connect 9 0 8 0;
-#X connect 10 0 41 0;
+#X connect 10 0 34 0;
 #X connect 11 0 1 0;
 #X connect 12 0 11 0;
-#X connect 15 0 38 1;
-#X connect 16 0 17 0;
-#X connect 17 0 28 0;
-#X connect 17 0 40 0;
-#X connect 18 0 17 1;
-#X connect 19 0 17 2;
-#X connect 20 0 18 0;
-#X connect 20 0 19 0;
-#X connect 21 0 42 0;
-#X connect 22 0 4 0;
-#X connect 23 0 38 0;
-#X connect 26 0 16 0;
-#X connect 37 0 38 0;
-#X connect 38 0 22 0;
-#X connect 38 1 26 0;
-#X connect 38 2 30 0;
-#X connect 41 0 9 0;
-#X connect 42 0 20 0;
+#X connect 13 0 32 1;
+#X connect 14 0 15 0;
+#X connect 15 0 24 0;
+#X connect 15 0 33 0;
+#X connect 16 0 15 1;
+#X connect 17 0 15 2;
+#X connect 18 0 16 0;
+#X connect 18 0 17 0;
+#X connect 19 0 35 0;
+#X connect 20 0 4 0;
+#X connect 22 0 14 0;
+#X connect 32 0 20 0;
+#X connect 32 1 22 0;
+#X connect 32 2 25 0;
+#X connect 34 0 9 0;
+#X connect 35 0 18 0;
+#X connect 37 0 32 0;

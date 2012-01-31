@@ -64,6 +64,9 @@ class GEM_EXTERN pix_openni : public GemBase
     	
     	t_outlet 	*m_dataout;
     	
+			bool m_osc_output;
+			bool m_real_world_coords;
+			
     protected:
     	
     	//////////
@@ -114,6 +117,8 @@ class GEM_EXTERN pix_openni : public GemBase
       
 			int	depth_output;
 			int	req_depth_output;
+			
+			
   
       uint16_t t_gamma[10000];
         
@@ -151,6 +156,9 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void			DepthModeMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
     	static void    	bangMessCallback(void *data);
     	
+			static void    	floatRealWorldCoordsMessCallback(void *data, float value);
+			static void    	floatRegistrationMessCallback(void *data, float value);
+			static void    	floatOscOutputMessCallback(void *data, float osc_output);
     	static void    	floatRgbMessCallback(void *data, float rgb);
     	static void    	floatDepthMessCallback(void *data, float depth);
     	static void    	floatSkeletonMessCallback(void *data, float skeleton);

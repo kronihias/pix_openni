@@ -1,5 +1,5 @@
 
-pix_openni (0.02 experimenting...)
+pix_openni (0.03 experimenting...)
 ======================================
 pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking, hand tracking
 
@@ -49,6 +49,12 @@ and add or uncomment:
 _________________
 Changelog
 
+
+0.03	* switchable OSC Style output of tracking data /skeleton/joint/r_hand id x y z, /hand/coords id x y z
+	* switchable real-world coordinate output in [mm]
+	* switchable registration between rgb image and depth image -> change point of view from depth camera to match with rgb image (overlay)
+	* improved help file
+
 0.02
 	* OSX binaries
 	* output rgb and depth stream simultaneously
@@ -63,6 +69,8 @@ Changelog
 
  ________________
 :::THINGS TO DO:::
+
+*	record and play function for sensor data
 
 *	support for multiple Kinect
 
