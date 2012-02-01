@@ -22,7 +22,7 @@ LOG
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
+#include <string.h>
 //#include <assert.h>
 //#include <iostream>
 //#include <cmath>
@@ -100,7 +100,8 @@ class GEM_EXTERN pix_openni : public GemBase
   int x_dim;
 
 	int openni_ready;
-	
+			
+			bool m_player; //playback started?
       bool rgb_started;
       bool depth_started;
       bool audio_started;
@@ -118,7 +119,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			int	depth_output;
 			int	req_depth_output;
 			
-			
+			std::string m_filename;
   
       uint16_t t_gamma[10000];
         
@@ -156,6 +157,10 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void			DepthModeMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
     	static void    	bangMessCallback(void *data);
     	
+			static void    	openMessCallback(void *data, std::string filename);
+			static void    	floatPlayMessCallback(void *data, float value);
+			static void    	floatPlaybackSpeedMessCallback(void *data, float value);
+			static void    	floatRecordMessCallback(void *data, float value);
 			static void    	floatRealWorldCoordsMessCallback(void *data, float value);
 			static void    	floatRegistrationMessCallback(void *data, float value);
 			static void    	floatOscOutputMessCallback(void *data, float osc_output);

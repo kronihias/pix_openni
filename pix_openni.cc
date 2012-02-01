@@ -61,8 +61,10 @@ ImageGenerator g_image;
 DepthMetaData g_depthMD;
 ImageMetaData g_imageMD;
 
+Recorder g_recorder;
+
 UserGenerator g_UserGenerator;
-Player g_Player;
+Player g_player;
 
 HandsGenerator g_HandsGenerator;
 GestureGenerator gestureGenerator;
@@ -348,10 +350,11 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	m_depthinlet  = inlet_new(this->x_obj, &this->x_obj->ob_pd, gensym("gem_state"), gensym("depth_state"));
 
 	m_dataout = outlet_new(this->x_obj, 0);
-
+	
 	post("pix_openni 0.03 - experimental - 2011/2012 by Matthias Kronlachner");
 
 	// init status variables
+	m_player = false;
 	depth_wanted = false;
 	depth_started= false; 
 	rgb_wanted = false;
@@ -814,6 +817,24 @@ void pix_openni :: render(GemState *state)
 			hand_started = false;
 		}
 		
+		if (m_player)
+		{
+			const XnChar* strNodeName = NULL;	
+			XnUInt32 nFrame_image = 0;
+			strNodeName = g_image.GetName();
+			g_player.TellFrame(strNodeName,nFrame_image);
+			
+			XnUInt32 nFrame_depth = 0;
+			strNodeName = g_depth.GetName();
+			g_player.TellFrame(strNodeName,nFrame_depth);
+			
+			t_atom ap[2];
+			SETFLOAT (ap+0, nFrame_image);
+			SETFLOAT (ap+1, nFrame_depth);
+
+			outlet_anything(m_dataout, gensym("playback"), 2, ap);
+		}
+		
 		}
 }
 
@@ -1183,10 +1204,30 @@ void pix_openni :: DepthModeMess (int argc, t_atom*argv)
 
 void pix_openni :: bangMess ()
 {
+	// OUTPUT OPENNI DEVICES OPENED
+	int nRetVal;
+	
+	NodeInfoList devicesList;
+	  nRetVal = g_context.EnumerateExistingNodes(devicesList, XN_NODE_TYPE_DEVICE);
+	  if (nRetVal != XN_STATUS_OK)
+	  {
+	    post("Failed to enumerate device nodes: %s\n", xnGetStatusString(nRetVal));
+	    return;
+	  }
+		int i=0;
+		for (NodeInfoList::Iterator it = devicesList.Begin(); it != devicesList.End(); ++it, ++i)
+		  {
+		    // Create the device node
+		    NodeInfo deviceInfo = *it;
+
+		    post ("Opened Device: %s", deviceInfo.GetInstanceName());
+
+		}
+
 	// OUTPUT AVAILABLE MODES
 	if (depth_started)
 	{
-		post("OpenNI:: Current Depth Output Mode: %ix%i @ %d Hz", g_depthMD.XRes(), g_depthMD.YRes(), g_depthMD.FPS());
+		post("\nOpenNI:: Current Depth Output Mode: %ix%i @ %d Hz", g_depthMD.XRes(), g_depthMD.YRes(), g_depthMD.FPS());
 		XnUInt32 xNum = g_depth.GetSupportedMapOutputModesCount();
 		post("OpenNI:: Supported depth modes:");
 		XnMapOutputMode* aMode = new XnMapOutputMode[xNum];
@@ -1243,8 +1284,17 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
 	class_addmethod(classPtr, (t_method)&pix_openni::floatOscOutputMessCallback,
 	  	  gensym("osc_style_output"), A_FLOAT, A_NULL);
 
-  class_addmethod(classPtr, (t_method)(&pix_openni::renderDepthCallback),
-                  gensym("depth_state"), A_GIMME, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::openMessCallback,
+	  	  gensym("open"), A_SYMBOL, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatRecordMessCallback,
+			  gensym("record"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatPlayMessCallback,
+				gensym("play"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatPlaybackSpeedMessCallback,
+				gensym("playback_speed"), A_FLOAT, A_NULL);
+
+	class_addmethod(classPtr, (t_method)(&pix_openni::renderDepthCallback),
+        gensym("depth_state"), A_GIMME, A_NULL);
 }
 
 void pix_openni :: VideoModeMessCallback(void *data, t_symbol*s, int argc, t_atom*argv)
@@ -1276,6 +1326,73 @@ void pix_openni :: floatRealWorldCoordsMessCallback(void *data, t_floatarg value
 		me->m_real_world_coords=false;
   if ((int)value == 1)
 		me->m_real_world_coords=true;
+}
+
+// TO BE DONE....!
+void pix_openni :: floatRecordMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+	int nRetVal = 0;
+	//me->post("filename: %s", me->m_filename.data());
+	if (((int)value == 1) && (me->m_filename.data() != ""))
+	{
+		nRetVal = g_context.FindExistingNode(XN_NODE_TYPE_PLAYER, g_recorder);
+		me->post("found recorder? %s", xnGetStatusString(nRetVal));
+		nRetVal=g_recorder.Create(g_context);
+		me->post("created recorder. %s", xnGetStatusString(nRetVal));
+		
+		nRetVal=g_recorder.SetDestination(XN_RECORD_MEDIUM_FILE, me->m_filename.data()); // set filename
+		me->post("set file name. %s", xnGetStatusString(nRetVal));
+		
+		nRetVal = g_recorder.AddNodeToRecording(g_image, XN_CODEC_JPEG);
+		me->post("added image node. %s", xnGetStatusString(nRetVal));
+		nRetVal = g_recorder.AddNodeToRecording(g_depth, XN_CODEC_16Z_EMB_TABLES);
+		me->post("added depth node. %s", xnGetStatusString(nRetVal));
+		
+	}
+	
+	if ((int)value == 0)
+	{
+		g_recorder.Release();
+		me->post("recording stopped.");
+	}
+}
+
+// TO BE DONE....!
+void pix_openni :: floatPlayMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+	int nRetVal = 0;
+	//me->post("filename: %s", me->m_filename.data());
+	if (((int)value == 1) && (me->m_filename.data() != ""))
+	{
+		nRetVal = g_context.OpenFileRecording(me->m_filename.data(), g_player) ;
+		me->post("opened file recording? %s", xnGetStatusString(nRetVal));
+		if (nRetVal == XN_STATUS_OK) me->m_player = true;
+	}
+	
+	if ((int)value == 0)
+	{
+		g_context.Release();
+	}
+}
+
+void pix_openni :: floatPlaybackSpeedMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+	int nRetVal = 0;
+	//me->post("filename: %s", me->m_filename.data());
+	g_player.SetPlaybackSpeed((double)value);
+}
+
+void pix_openni :: openMessCallback(void *data, std::string filename)
+{
+	pix_openni *me = (pix_openni*)GetMyClass(data);
+	if (filename.data() != "")
+	{
+		me->post("filename set to %s", filename.data());
+		me->m_filename = filename;
+	}
 }
 
 void pix_openni :: floatRegistrationMessCallback(void *data, t_floatarg value)
