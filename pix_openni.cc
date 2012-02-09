@@ -33,7 +33,7 @@ CPPEXTERN_NEW_WITH_GIMME(pix_openni);
 //---------------------------------------------------------------------------
 // Defines
 //---------------------------------------------------------------------------
-#define SAMPLE_XML_PATH "SamplesConfig.xml"  // should be replaced with in-code initialisation
+//#define SAMPLE_XML_PATH "SamplesConfig.xml"  // should be replaced with in-code initialisation
 
 #define DISPLAY_MODE_OVERLAY	1
 #define DISPLAY_MODE_DEPTH		2
@@ -478,6 +478,7 @@ pix_openni :: ~pix_openni()
 // Thread Function
 //
 /////////////////////////////////////////////////////////
+#if 0
 void *pix_openni::openni_thread_func(void*target)
 {
 	pix_openni *me = (pix_openni*) target;
@@ -577,15 +578,16 @@ void *pix_openni::openni_thread_func(void*target)
 			}
 		}
 	
-		struct timespec test;	/*nanosleep brauch das timespec Structure*/
+		// struct timespec test;	/*nanosleep brauch das timespec Structure*/
 
-		test.tv_sec  = 0;		/*was tv_sec und tv_nsec (Sek. und Nanosek.) enthält*/
-		test.tv_nsec = 5000;
-		nanosleep(&test,NULL);
+		// test.tv_sec  = 0;		/*was tv_sec und tv_nsec (Sek. und Nanosek.) enthält*/
+		// test.tv_nsec = 5000;
+		// nanosleep(&test,NULL);
 	}
 	me->post("freenect thread ended");
 	return 0;
 }
+#endif
 
 /////////////////////////////////////////////////////////
 // startRendering
@@ -821,18 +823,25 @@ void pix_openni :: render(GemState *state)
 		{
 			const XnChar* strNodeName = NULL;	
 			XnUInt32 nFrame_image = 0;
+			XnUInt32 totFrame_image = 0;
 			strNodeName = g_image.GetName();
-			g_player.TellFrame(strNodeName,nFrame_image);
+			g_player.TellFrame(strNodeName, nFrame_image);
+			g_player.GetNumFrames(strNodeName, totFrame_image);
+			
 			
 			XnUInt32 nFrame_depth = 0;
+			XnUInt32 totFrame_depth = 0;
 			strNodeName = g_depth.GetName();
 			g_player.TellFrame(strNodeName,nFrame_depth);
+			g_player.GetNumFrames(strNodeName, totFrame_depth);
 			
-			t_atom ap[2];
+			t_atom ap[4];
 			SETFLOAT (ap+0, nFrame_image);
-			SETFLOAT (ap+1, nFrame_depth);
+			SETFLOAT (ap+1, totFrame_image);
+			SETFLOAT (ap+2, nFrame_depth);
+			SETFLOAT (ap+3, totFrame_depth);
 
-			outlet_anything(m_dataout, gensym("playback"), 2, ap);
+			outlet_anything(m_dataout, gensym("playback"), 4, ap);
 		}
 		
 		}
@@ -1292,6 +1301,10 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
 				gensym("play"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatPlaybackSpeedMessCallback,
 				gensym("playback_speed"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatJumpToImageFrameMessCallback,
+				gensym("jump_image_frame"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatJumpToDepthFrameMessCallback,
+				gensym("jump_depth_frame"), A_FLOAT, A_NULL);
 
 	class_addmethod(classPtr, (t_method)(&pix_openni::renderDepthCallback),
         gensym("depth_state"), A_GIMME, A_NULL);
@@ -1383,6 +1396,28 @@ void pix_openni :: floatPlaybackSpeedMessCallback(void *data, t_floatarg value)
 	int nRetVal = 0;
 	//me->post("filename: %s", me->m_filename.data());
 	g_player.SetPlaybackSpeed((double)value);
+}
+
+void pix_openni :: floatJumpToImageFrameMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+	int nRetVal = 0;
+
+	const XnChar* strNodeName = NULL;
+	strNodeName = g_image.GetName();
+
+	g_player.SeekToFrame(strNodeName,(XnUInt32)value,XN_PLAYER_SEEK_SET);
+}
+
+void pix_openni :: floatJumpToDepthFrameMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+	int nRetVal = 0;
+
+	const XnChar* strNodeName = NULL;
+	strNodeName = g_depth.GetName();
+
+	g_player.SeekToFrame(strNodeName,(XnUInt32)value,XN_PLAYER_SEEK_SET);
 }
 
 void pix_openni :: openMessCallback(void *data, std::string filename)

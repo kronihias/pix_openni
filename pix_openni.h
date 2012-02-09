@@ -16,9 +16,7 @@ LOG
 #ifndef INCLUDE_pix_openni_H_
 #define INCLUDE_pix_openni_H_
 
-#ifndef _EiC
-//#include "cv.h"
-#endif
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +25,7 @@ LOG
 //#include <iostream>
 //#include <cmath>
 #include <vector>
+#include <stdint.h>
 
 #include "XnCodecIDs.h"
 #include "XnOpenNI.h"
@@ -52,7 +51,11 @@ KEYWORDS
 DESCRIPTION
    
 -----------------------------------------------------------------*/
+#ifdef _WIN32
+class GEM_EXPORT pix_openni : public GemBase
+#else
 class GEM_EXTERN pix_openni : public GemBase
+#endif
 {
     CPPEXTERN_HEADER(pix_openni, GemBase);
 
@@ -160,6 +163,8 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void    	openMessCallback(void *data, std::string filename);
 			static void    	floatPlayMessCallback(void *data, float value);
 			static void    	floatPlaybackSpeedMessCallback(void *data, float value);
+			static void    	floatJumpToImageFrameMessCallback(void *data, float value);
+			static void    	floatJumpToDepthFrameMessCallback(void *data, float value);
 			static void    	floatRecordMessCallback(void *data, float value);
 			static void    	floatRealWorldCoordsMessCallback(void *data, float value);
 			static void    	floatRegistrationMessCallback(void *data, float value);
