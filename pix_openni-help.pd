@@ -31,7 +31,7 @@
 -1 0;
 #X msg 112 122 depth \$1;
 #X obj 180 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
--1 1;
+-1 0;
 #X msg 180 122 skeleton \$1;
 #X obj 271 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 0;
@@ -51,13 +51,13 @@
 #X obj 379 170 s \$0-prop;
 #X obj 38 222 cnv 15 300 150 empty empty empty 20 12 0 14 -204800 -66577
 0;
-#X msg 45 305 depth_output \$1;
-#X obj 45 250 vradio 15 1 0 3 empty empty empty 0 -8 0 10 -262144 -1
--1 0;
-#X msg 230 308 registration \$1;
-#X obj 230 274 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+#X msg 45 315 depth_output \$1;
+#X obj 45 250 vradio 15 1 0 4 empty empty empty 0 -8 0 10 -262144 -1
+-1 2;
+#X msg 234 308 registration \$1;
+#X obj 234 274 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
 -1 -1 0;
-#X obj 45 339 s \$0-prop;
+#X obj 45 349 s \$0-prop;
 #X text 41 223 DEPTH OUTPUT PROPERTIES;
 #X obj 364 223 cnv 15 300 150 empty empty empty 20 12 0 14 -162280
 -66577 0;
@@ -77,13 +77,14 @@
 #X obj 369 378 s \$0-prop;
 #X text 456 314 -> joint r_hand id x y z;
 #X text 451 330 -> /skeleton/joint/r_hand id x y z;
-#X text 232 239 Match viewpoints;
-#X text 232 254 of RGB and Depth;
-#X text 248 271 OFF;
-#X text 248 287 ON;
+#X text 236 239 Match viewpoints;
+#X text 236 254 of RGB and Depth;
+#X text 252 271 OFF;
+#X text 252 287 ON;
 #X text 64 247 normal -> human viewable;
-#X text 65 263 greyscale;
-#X text 66 279 raw -> mm in r&g channel;
+#X text 65 263 greyscale (1 byte);
+#X text 64 279 raw rgba -> mm in r&g ch.;
+#X text 64 295 raw yuv (2 byte)->16 bit mm;
 #X connect 2 0 12 0;
 #X connect 3 0 2 0;
 #X connect 4 0 5 0;
@@ -286,7 +287,7 @@
 #X text 614 182 5th: hand tracking on;
 #X text 613 117 1st: kinect ID/serial --> just dummy;
 #X obj 109 155 pix_openni 0 1 1 0 0;
-#N canvas 35 339 857 435 distance_measurement 0;
+#N canvas 182 223 857 435 distance_measurement 0;
 #X obj -106 43 inlet;
 #X obj -196 90 pix_data;
 #X floatatom -57 54 5 0 0 0 - - -;
@@ -300,7 +301,7 @@
 #X obj -210 202 * 65536;
 #X obj -210 232 +;
 #X obj -196 48 metro 100;
-#X obj -196 25 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj -196 25 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X text -129 88 output pixel rgb value;
 #X text -92 140 r g b;
@@ -310,11 +311,13 @@
 #X text 121 65 (from depth image);
 #X text -178 24 ON/OFF;
 #X obj -210 314 nbx 5 60 -1e+37 1e+37 0 0 empty empty m 300 22 0 60
--262144 -1 -1 0 256;
+-262144 -1 -1 4.10905 256;
 #X obj -210 260 / 1000;
 #X obj -57 7 loadbang;
-#X text 12 10 for distance measurement use !!!raw depth output!!!;
 #X text -184 232 16 bit;
+#X text 12 10 for distance measurement use !!!raw depth output!!!;
+#X msg 333 13 depth_output 2;
+#X obj 333 37 s \$0-prop;
 #X connect 0 0 1 1;
 #X connect 1 1 4 0;
 #X connect 2 0 1 2;
@@ -333,6 +336,7 @@
 #X connect 13 0 12 0;
 #X connect 22 0 21 0;
 #X connect 23 0 8 0;
+#X connect 26 0 27 0;
 #X restore 416 422 pd distance_measurement;
 #X msg 146 295 0.5;
 #X msg 332 343 0.5;
