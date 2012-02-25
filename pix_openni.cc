@@ -781,34 +781,38 @@ void pix_openni :: render(GemState *state)
 			
 		
 		// HAND GESTURES
-		if (hand_wanted && !hand_started)
-		{
-			post("trying to start hand tracking...");
-			XnCallbackHandle hHandsCallbacks, hGestureCallbacks;
-			rc = g_HandsGenerator.Create(g_context);
-			if (rc != XN_STATUS_OK)
+			if (hand_wanted && !hand_started)
 			{
-				post("OpenNI:: HandsGenerator node couldn't be created!");
-				hand_wanted=false;
-			}
-			rc = gestureGenerator.Create(g_context);
-			if (rc != XN_STATUS_OK)
-			{
-				post("OpenNI:: GestureGenerator node couldn't be created!");
-				hand_wanted=false;
-			}
-			rc = gestureGenerator.RegisterGestureCallbacks(Gesture_Recognized, Gesture_Process, this, hGestureCallbacks);
-			post("RegisterGestureCallbacks: %s\n", xnGetStatusString(rc));
-			rc = g_HandsGenerator.RegisterHandCallbacks(new_hand, update_hand, lost_hand, this, hHandsCallbacks);
-			post("RegisterHandCallbacks: %s\n", xnGetStatusString(rc));
-			g_HandsGenerator.SetSmoothing(0.2);
-			g_context.StartGeneratingAll();
-			rc = gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
-			if (rc == XN_STATUS_OK)
-			{
-				post("OpenNI:: HandTracking started!");
-			}		
-			hand_started = true;
+				post("trying to start hand tracking...");
+				XnCallbackHandle hHandsCallbacks, hGestureCallbacks;
+				rc = g_HandsGenerator.Create(g_context);
+				if (rc != XN_STATUS_OK)
+				{
+					post("OpenNI:: HandsGenerator node couldn't be created!");
+					hand_wanted=false;
+					return;
+				} else {
+					rc = gestureGenerator.Create(g_context);
+					if (rc != XN_STATUS_OK)
+					{
+						post("OpenNI:: GestureGenerator node couldn't be created!");
+						hand_wanted=false;
+						return;
+					} else {
+						rc = gestureGenerator.RegisterGestureCallbacks(Gesture_Recognized, Gesture_Process, this, hGestureCallbacks);
+						post("RegisterGestureCallbacks: %s\n", xnGetStatusString(rc));
+						rc = g_HandsGenerator.RegisterHandCallbacks(new_hand, update_hand, lost_hand, this, hHandsCallbacks);
+						post("RegisterHandCallbacks: %s\n", xnGetStatusString(rc));
+						g_HandsGenerator.SetSmoothing(0.2);
+						g_context.StartGeneratingAll();
+						rc = gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
+						if (rc == XN_STATUS_OK)
+						{
+							post("OpenNI:: HandTracking started!");
+							hand_started = true;
+						}
+					}
+				}
 		}
 		
 		if (!hand_wanted && hand_started)
