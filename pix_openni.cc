@@ -661,7 +661,7 @@ void pix_openni :: render(GemState *state)
 					g_image.GetMetaData(g_imageMD);
 					
 					//m_image.image.data= (unsigned char*)g_imageMD.RGB24Data();
-					if ((g_imageMD.XRes() != m_image.image.xsize) || (g_imageMD.YRes() != m_image.image.ysize))
+					if (((int)g_imageMD.XRes() != (int)m_image.image.xsize) || ((int)g_imageMD.YRes() != (int)m_image.image.ysize))
 					{
 						m_image.image.xsize = g_imageMD.XRes();
 						m_image.image.ysize = g_imageMD.YRes();
@@ -1437,6 +1437,7 @@ void pix_openni :: floatJumpToDepthFrameMessCallback(void *data, t_floatarg valu
 void pix_openni :: openMessCallback(void *data, std::string filename)
 {
 	pix_openni *me = (pix_openni*)GetMyClass(data);
+	// filename.empty() not working correctly!?	
 	if (filename.data() != "")
 	{
 		me->post("filename set to %s", filename.data());
