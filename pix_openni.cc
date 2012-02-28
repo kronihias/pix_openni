@@ -1463,7 +1463,7 @@ void pix_openni :: openMessCallback(void *data, std::string filename)
 		char buf[MAXPDSTRING];
 	  canvas_makefilename(const_cast<t_canvas*>(me->getCanvas()), const_cast<char*>(filename.c_str()), buf, MAXPDSTRING);
 		me->post("filename set to %s", buf);
-		me->m_filename = buf;
+		me->m_filename.assign(buf);
 	}
 }
 
