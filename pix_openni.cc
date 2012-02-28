@@ -1326,7 +1326,11 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
 	  	  gensym("real_world_coords"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatOscOutputMessCallback,
 	  	  gensym("osc_style_output"), A_FLOAT, A_NULL);
-
+	class_addmethod(classPtr, (t_method)&pix_openni::ResetUserMessCallback,
+	  	  gensym("reset_user"), A_GIMME, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::UserInfoMessCallback,
+	  	  gensym("userinfo"), A_NULL);
+			
 	class_addmethod(classPtr, (t_method)&pix_openni::openMessCallback,
 	  	  gensym("open"), A_SYMBOL, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatRecordMessCallback,
@@ -1373,6 +1377,69 @@ void pix_openni :: floatRealWorldCoordsMessCallback(void *data, t_floatarg value
 		me->m_real_world_coords=false;
   if ((int)value == 1)
 		me->m_real_world_coords=true;
+}
+
+// reset user skeleton
+void pix_openni :: ResetUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv)
+{
+	pix_openni *me = (pix_openni*)GetMyClass(data);
+	if (g_UserGenerator)
+	{
+		int nRetVal = 0;
+		if (argc == 0) // reset all users
+		{
+			XnUserID aUsers[15];
+			XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
+			g_UserGenerator.GetUsers(aUsers, nUsers);
+			for (int i = 0; i < nUsers; ++i) {
+				nRetVal = g_UserGenerator.GetSkeletonCap().Reset(aUsers[i]);
+				g_UserGenerator.GetSkeletonCap().RequestCalibration(aUsers[i], TRUE);
+				me->post("OpenNI:: reset user nr %i: %s", aUsers[i], xnGetStatusString(nRetVal));
+			}
+		}
+
+		if (argc == 1 && argv->a_type==A_FLOAT)
+		{
+				nRetVal = g_UserGenerator.GetSkeletonCap().Reset((XnUserID)atom_getint(&argv[0]));
+				me->post("OpenNI:: reset user nr %i: %s", atom_getint(&argv[0]), xnGetStatusString(nRetVal));
+		}
+	}
+}
+
+// user info to outlet: num_users [#] OR /skeleton/num_users [#] AND user [id] [is_tracking] OR /skeleton/user [id] [is_tracking]
+void pix_openni :: UserInfoMessCallback(void *data)
+{
+	pix_openni *me = (pix_openni*)GetMyClass(data);
+	if (g_UserGenerator)
+	{
+		XnUserID aUsers[15];
+		XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
+		g_UserGenerator.GetUsers(aUsers, nUsers);
+		
+		t_atom ap[2];
+		SETFLOAT (ap, (int)nUsers);
+		
+		if (me->m_osc_output)
+		{
+			outlet_anything(me->m_dataout, gensym("/skeleton/num_users"), 1, ap);
+		} else {
+			outlet_anything(me->m_dataout, gensym("num_users"), 1, ap);
+		}
+		
+		for (int i = 0; i < nUsers; ++i)
+		{		
+			t_atom ap[2];
+			SETFLOAT (ap, (int)aUsers[i]);
+			SETFLOAT (ap+1, (int)g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]));
+
+			if (me->m_osc_output)
+			{
+				outlet_anything(me->m_dataout, gensym("/skeleton/user"), 2, ap);
+			} else {
+				outlet_anything(me->m_dataout, gensym("user"), 2, ap);
+			}
+		}
+	}	
 }
 
 // TO BE DONE....!

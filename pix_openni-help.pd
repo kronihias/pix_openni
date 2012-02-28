@@ -1,4 +1,4 @@
-#N canvas 347 22 933 467 10;
+#N canvas 216 30 933 467 10;
 #X obj 109 120 gemhead;
 #X obj 247 54 gemwin;
 #X msg 247 22 dimen 640 480 \, create \, 1;
@@ -20,7 +20,7 @@
 #X floatatom 332 363 5 0 0 0 - - -;
 #X obj 332 323 loadbang;
 #X obj 109 226 translateXYZ -3 2 0;
-#N canvas 360 100 909 439 properties 0;
+#N canvas 198 105 1029 438 properties 0;
 #X text 14 17 properties for pix_openni;
 #X obj 39 54 cnv 15 300 150 empty empty empty 20 12 0 14 -232576 -66577
 0;
@@ -31,7 +31,7 @@
 -1 0;
 #X msg 112 122 depth \$1;
 #X obj 180 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
--1 0;
+-1 1;
 #X msg 180 122 skeleton \$1;
 #X obj 271 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 0;
@@ -85,6 +85,19 @@
 #X text 65 263 greyscale (1 byte);
 #X text 64 279 raw rgba -> mm in r&g ch.;
 #X text 64 295 raw yuv (2 byte)->16 bit mm;
+#X obj 685 222 cnv 15 300 150 empty empty empty 20 12 0 14 -128992
+-66577 0;
+#X obj 690 347 s \$0-prop;
+#X msg 690 261 reset_user;
+#X msg 810 265 reset_user \$1;
+#X floatatom 810 246 5 0 0 0 - - -;
+#X text 691 222 skeleton specific;
+#X text 690 244 reset all users;
+#X text 847 244 reset skeleton of user;
+#X msg 696 300 userinfo;
+#X text 756 297 userinfo to outlet;
+#X text 769 323 user [id] [is_tracking];
+#X text 769 311 num_users [#];
 #X connect 2 0 12 0;
 #X connect 3 0 2 0;
 #X connect 4 0 5 0;
@@ -105,6 +118,10 @@
 #X connect 33 0 36 0;
 #X connect 36 0 41 0;
 #X connect 37 0 41 0;
+#X connect 54 0 53 0;
+#X connect 55 0 53 0;
+#X connect 56 0 55 0;
+#X connect 60 0 53 0;
 #X restore 43 87 pd properties;
 #X obj 295 274 translateXYZ 3 2 0;
 #N canvas 1 151 319 137 pix_info 0;
@@ -141,9 +158,9 @@
 #X connect 0 6 6 0;
 #X connect 7 0 0 0;
 #X restore 295 426 pd pix_info;
-#N canvas 1 89 531 259 visualize_tracking 1;
+#N canvas 1 89 531 259 visualize_tracking 0;
 #X obj 32 83 gem_sceleton;
-#N canvas 527 306 675 356 status_msg 0;
+#N canvas 537 306 675 356 status_msg 0;
 #X obj 16 26 inlet;
 #X obj 79 217 text3d;
 #X obj 79 125 list trim;
@@ -198,7 +215,7 @@
 #X connect 24 0 18 1;
 #X connect 25 3 10 0;
 #X restore 122 84 pd status_msg;
-#N canvas 732 158 545 513 hand 1;
+#N canvas 732 158 545 513 hand 0;
 #X obj 20 32 inlet;
 #X text 74 32 display hand tracking;
 #X obj 20 63 route hand;
@@ -353,7 +370,7 @@
 #X text -50 6 pix_openni 0.03 experimental!!;
 #X text 110 400 RGB Image;
 #X text 297 252 DEPTH Image;
-#N canvas 0 22 568 313 record 1;
+#N canvas 0 22 568 313 record 0;
 #X obj 55 179 s \$0-prop;
 #X obj 69 111 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 0;
