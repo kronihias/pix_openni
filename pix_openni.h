@@ -70,6 +70,8 @@ class GEM_EXTERN pix_openni : public GemBase
 			bool m_osc_output;
 			bool m_real_world_coords;
 			
+			bool m_auto_calibration;
+			
     protected:
     	
     	//////////
@@ -164,7 +166,9 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void    	floatRealWorldCoordsMessCallback(void *data, float value);
 			static void    	floatRegistrationMessCallback(void *data, float value);
 			static void    	floatOscOutputMessCallback(void *data, float osc_output);
-			static void    	ResetUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
+			static void    	StartUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
+			static void    	StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
+			static void    	floatAutoCalibrationMessCallback(void *data, float value);
 			static void    	UserInfoMessCallback(void *data);
     	static void    	floatRgbMessCallback(void *data, float rgb);
     	static void    	floatDepthMessCallback(void *data, float depth);

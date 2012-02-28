@@ -20,7 +20,7 @@
 #X floatatom 332 363 5 0 0 0 - - -;
 #X obj 332 323 loadbang;
 #X obj 109 226 translateXYZ -3 2 0;
-#N canvas 198 105 1029 438 properties 0;
+#N canvas 102 30 1029 438 properties 1;
 #X text 14 17 properties for pix_openni;
 #X obj 39 54 cnv 15 300 150 empty empty empty 20 12 0 14 -232576 -66577
 0;
@@ -74,7 +74,7 @@
 #X text 456 266 z: 0-7;
 #X text 455 253 if OFF x and y are normalized 0-1;
 #X text 390 226 tracking data properties (skeleton \, hand);
-#X obj 369 378 s \$0-prop;
+#X obj 369 379 s \$0-prop;
 #X text 456 314 -> joint r_hand id x y z;
 #X text 451 330 -> /skeleton/joint/r_hand id x y z;
 #X text 236 239 Match viewpoints;
@@ -85,19 +85,34 @@
 #X text 65 263 greyscale (1 byte);
 #X text 64 279 raw rgba -> mm in r&g ch.;
 #X text 64 295 raw yuv (2 byte)->16 bit mm;
-#X obj 685 222 cnv 15 300 150 empty empty empty 20 12 0 14 -128992
+#X obj 685 125 cnv 15 300 250 empty empty empty 20 12 0 14 -128992
 -66577 0;
-#X obj 690 347 s \$0-prop;
-#X msg 690 261 reset_user;
-#X msg 810 265 reset_user \$1;
-#X floatatom 810 246 5 0 0 0 - - -;
-#X text 691 222 skeleton specific;
-#X text 690 244 reset all users;
-#X text 847 244 reset skeleton of user;
-#X msg 696 300 userinfo;
-#X text 756 297 userinfo to outlet;
-#X text 769 323 user [id] [is_tracking];
-#X text 769 311 num_users [#];
+#X obj 690 344 s \$0-prop;
+#X floatatom 810 148 5 0 0 0 - - -;
+#X text 691 125 skeleton specific;
+#X msg 768 230 userinfo;
+#X text 828 227 userinfo to outlet;
+#X text 841 253 user [id] [is_tracking];
+#X text 841 241 num_users [#];
+#X msg 690 163 stop_user;
+#X msg 810 167 stop_user \$1;
+#X floatatom 811 189 5 0 0 0 - - -;
+#X msg 695 222 start_user;
+#X msg 811 208 start_user \$1;
+#X text 692 190 start calibration;
+#X obj 781 309 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X text 800 307 OFF;
+#X text 800 323 ON;
+#X text 773 291 start calibration if user detected;
+#X msg 781 343 auto_calibration \$1;
+#X text 692 203 for all users;
+#X text 848 134 stop skeleton for;
+#X text 852 150 specific user;
+#X text 687 144 stop all skeletons;
+#X text 848 187 start calibration for;
+#X text 912 202 spec. user;
+#X text 827 322 default: ON;
 #X connect 2 0 12 0;
 #X connect 3 0 2 0;
 #X connect 4 0 5 0;
@@ -118,10 +133,15 @@
 #X connect 33 0 36 0;
 #X connect 36 0 41 0;
 #X connect 37 0 41 0;
-#X connect 54 0 53 0;
-#X connect 55 0 53 0;
-#X connect 56 0 55 0;
+#X connect 54 0 61 0;
+#X connect 56 0 53 0;
 #X connect 60 0 53 0;
+#X connect 61 0 53 0;
+#X connect 62 0 64 0;
+#X connect 63 0 53 0;
+#X connect 64 0 53 0;
+#X connect 66 0 70 0;
+#X connect 70 0 53 0;
 #X restore 43 87 pd properties;
 #X obj 295 274 translateXYZ 3 2 0;
 #N canvas 1 151 319 137 pix_info 0;

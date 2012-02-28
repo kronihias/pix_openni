@@ -185,13 +185,16 @@ void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, v
 	}
 	
 	// New user found
-	if (g_bNeedPose)
+	if (me->m_auto_calibration) // if m_auto_calibration is off no skeleton will be tracked automatically
 	{
-		g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
-	}
-	else
-	{
-		g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+		if (g_bNeedPose)
+		{
+			g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
+		}
+		else
+		{
+			g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+		}
 	}
 }
 // Callback: An existing user was lost
@@ -370,6 +373,8 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	
 	m_osc_output = false;
 	m_real_world_coords = false;
+	
+	m_auto_calibration = true;
 	
 	depth_output = 0;
 	req_depth_output = 0;
@@ -1326,11 +1331,15 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
 	  	  gensym("real_world_coords"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatOscOutputMessCallback,
 	  	  gensym("osc_style_output"), A_FLOAT, A_NULL);
-	class_addmethod(classPtr, (t_method)&pix_openni::ResetUserMessCallback,
-	  	  gensym("reset_user"), A_GIMME, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::StopUserMessCallback,
+	  	  gensym("stop_user"), A_GIMME, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::StartUserMessCallback,
+	  	  gensym("start_user"), A_GIMME, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::UserInfoMessCallback,
 	  	  gensym("userinfo"), A_NULL);
-			
+	class_addmethod(classPtr, (t_method)&pix_openni::floatAutoCalibrationMessCallback,
+	  	  gensym("auto_calibration"), A_FLOAT, A_NULL);
+
 	class_addmethod(classPtr, (t_method)&pix_openni::openMessCallback,
 	  	  gensym("open"), A_SYMBOL, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatRecordMessCallback,
@@ -1379,8 +1388,37 @@ void pix_openni :: floatRealWorldCoordsMessCallback(void *data, t_floatarg value
 		me->m_real_world_coords=true;
 }
 
-// reset user skeleton
-void pix_openni :: ResetUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv)
+// request user calibration for skeleton tracking
+void pix_openni :: StartUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv)
+{
+	pix_openni *me = (pix_openni*)GetMyClass(data);
+	if (g_UserGenerator)
+	{
+		int nRetVal = 0;
+		if (argc == 0) // start all users
+		{
+			XnUserID aUsers[15];
+			XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
+			g_UserGenerator.GetUsers(aUsers, nUsers);
+			for (int i = 0; i < nUsers; ++i) {
+				if (!g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
+				{
+					nRetVal=g_UserGenerator.GetSkeletonCap().RequestCalibration(aUsers[i], TRUE);
+					me->post("OpenNI:: request user calibration nr %i: %s", aUsers[i], xnGetStatusString(nRetVal));
+				}
+			}
+		}
+
+		if (argc == 1 && argv->a_type==A_FLOAT)
+		{
+				nRetVal=g_UserGenerator.GetSkeletonCap().RequestCalibration((XnUserID)atom_getint(&argv[0]), TRUE);
+				me->post("OpenNI:: request user calibration nr %i: %s", atom_getint(&argv[0]), xnGetStatusString(nRetVal));
+		}
+	}
+}
+
+// stop user skeleton tracking
+void pix_openni :: StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv)
 {
 	pix_openni *me = (pix_openni*)GetMyClass(data);
 	if (g_UserGenerator)
@@ -1393,15 +1431,14 @@ void pix_openni :: ResetUserMessCallback(void *data, t_symbol*s, int argc, t_ato
 			g_UserGenerator.GetUsers(aUsers, nUsers);
 			for (int i = 0; i < nUsers; ++i) {
 				nRetVal = g_UserGenerator.GetSkeletonCap().Reset(aUsers[i]);
-				g_UserGenerator.GetSkeletonCap().RequestCalibration(aUsers[i], TRUE);
-				me->post("OpenNI:: reset user nr %i: %s", aUsers[i], xnGetStatusString(nRetVal));
+				me->post("OpenNI:: stop user nr %i: %s", aUsers[i], xnGetStatusString(nRetVal));
 			}
 		}
 
 		if (argc == 1 && argv->a_type==A_FLOAT)
 		{
 				nRetVal = g_UserGenerator.GetSkeletonCap().Reset((XnUserID)atom_getint(&argv[0]));
-				me->post("OpenNI:: reset user nr %i: %s", atom_getint(&argv[0]), xnGetStatusString(nRetVal));
+				me->post("OpenNI:: stop user nr %i: %s", atom_getint(&argv[0]), xnGetStatusString(nRetVal));
 		}
 	}
 }
@@ -1425,13 +1462,21 @@ void pix_openni :: UserInfoMessCallback(void *data)
 		} else {
 			outlet_anything(me->m_dataout, gensym("num_users"), 1, ap);
 		}
-		
+		me->post("OpenNI:: number of detected users: %i", (int)nUsers);
 		for (int i = 0; i < nUsers; ++i)
 		{		
 			t_atom ap[2];
 			SETFLOAT (ap, (int)aUsers[i]);
 			SETFLOAT (ap+1, (int)g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]));
-
+			
+			if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
+			{
+				me->post("OpenNI:: user %i with skeleton tracking", (int)aUsers[i]);
+			} else {
+				me->post("OpenNI:: user %i without skeleton", (int)aUsers[i]);
+			}
+			
+			
 			if (me->m_osc_output)
 			{
 				outlet_anything(me->m_dataout, gensym("/skeleton/user"), 2, ap);
@@ -1600,6 +1645,15 @@ void pix_openni :: floatHandMessCallback(void *data, t_floatarg hand)
 		me->hand_wanted=false;
   if ((int)hand == 1)
 		me->hand_wanted=true;
+}
+
+void pix_openni :: floatAutoCalibrationMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((int)value == 0)
+		me->m_auto_calibration=false;
+  if ((int)value == 1)
+		me->m_auto_calibration=true;
 }
 
 void pix_openni :: renderDepthCallback(void *data, t_symbol*s, int argc, t_atom*argv)
