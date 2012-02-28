@@ -97,12 +97,11 @@ class GEM_EXTERN pix_openni : public GemBase
 
 			static void* openni_thread_func(void*);
 			
-	//std::vector<uint16_t> m_gamma;
 			
   // Settings
-  int x_dim;
+  		int x_dim;
 
-	int openni_ready;
+			int openni_ready;
 			
 			bool m_player; //playback started?
       bool rgb_started;
@@ -126,14 +125,14 @@ class GEM_EXTERN pix_openni : public GemBase
   
       uint16_t t_gamma[10000];
         
-	int 		m_width;
-	int			m_height;
+			int 		m_width;
+			int			m_height;
 	
-	XnCallbackHandle hUserCallbacks, hCalibrationStartCallback, hCalibrationCompleteCallback, hPoseCallbacks, hUserExitCallback, hUserReEnterCallback, hHandsCallbacks, hGestureCallbacks;
+			XnCallbackHandle hUserCallbacks, hCalibrationStartCallback, hCalibrationCompleteCallback, hPoseCallbacks, hUserExitCallback, hUserReEnterCallback, hHandsCallbacks, hGestureCallbacks;
 	
-	XnChar strRequiredCalibrationPose[XN_MAX_NAME_LENGTH];
+			XnChar strRequiredCalibrationPose[XN_MAX_NAME_LENGTH];
 	
-	bool      m_rendering; // "true" when rendering is on, false otherwise
+			bool      m_rendering; // "true" when rendering is on, false otherwise
 
   
     	//////////
@@ -150,10 +149,6 @@ class GEM_EXTERN pix_openni : public GemBase
 			
 			
     private:
-    
-    	
-    	
-			
     	//////////
     	// Static member functions
     	static void			VideoModeMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
@@ -180,11 +175,6 @@ class GEM_EXTERN pix_openni : public GemBase
 			t_inlet         *m_depthinlet; 
 			
 			pthread_t openni_thread;
-			
-	/////////
-	// IplImage needed
-
-  
 
 };
 

@@ -354,6 +354,7 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	post("pix_openni 0.03 - experimental - 2011/2012 by Matthias Kronlachner");
 
 	// init status variables
+	
 	m_player = false;
 	depth_wanted = false;
 	depth_started= false; 
@@ -412,7 +413,7 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 
 	XnStatus rc;  // ERROR STATUS
 	
-//// INIT IN CODE:: not working now
+//// INIT IN CODE::
 
 		//Context context;
 		rc = g_context.Init(); // key difference: Init() not InitFromXml()
@@ -1459,8 +1460,10 @@ void pix_openni :: openMessCallback(void *data, std::string filename)
 	// filename.empty() not working correctly!?	
 	if (filename.data() != "")
 	{
-		me->post("filename set to %s", filename.data());
-		me->m_filename = filename;
+		char buf[MAXPDSTRING];
+	  canvas_makefilename(const_cast<t_canvas*>(me->getCanvas()), const_cast<char*>(filename.c_str()), buf, MAXPDSTRING);
+		me->post("filename set to %s", buf);
+		me->m_filename = buf;
 	}
 }
 
