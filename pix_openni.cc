@@ -1204,9 +1204,15 @@ void pix_openni :: VideoModeMess (int argc, t_atom*argv)
 		mapMode.nXRes = atom_getint(&argv[0]);
 		mapMode.nYRes = atom_getint(&argv[1]);
 		mapMode.nFPS = atom_getint(&argv[2]);
-		rc = g_image.SetMapOutputMode(mapMode);
-		post("OpenNI:: trying to set image mode to %ix%i @ %i Hz", atom_getint(&argv[0]), atom_getint(&argv[1]), atom_getint(&argv[2]));
-		post("OpenNI:: %s", xnGetStatusString(rc));
+		if (g_image)
+		{
+			rc = g_image.SetMapOutputMode(mapMode);
+			post("OpenNI:: trying to set image mode to %ix%i @ %i Hz", atom_getint(&argv[0]), atom_getint(&argv[1]), atom_getint(&argv[2]));
+			post("OpenNI:: %s", xnGetStatusString(rc));
+		} else {
+			post("OpenNI:: image generator not started");
+		}
+
 	}
 }
 
@@ -1214,14 +1220,19 @@ void pix_openni :: DepthModeMess (int argc, t_atom*argv)
 {
 	if (argc == 3 && argv->a_type==A_FLOAT && (argv+1)->a_type==A_FLOAT && (argv+2)->a_type==A_FLOAT)
 	{
-		XnStatus rc;	
-		XnMapOutputMode mapMode;
-		mapMode.nXRes = atom_getint(&argv[0]);
-		mapMode.nYRes = atom_getint(&argv[1]);
-		mapMode.nFPS = atom_getint(&argv[2]);
-		rc = g_depth.SetMapOutputMode(mapMode);
-		post("OpenNI:: trying to set depth mode to %ix%i @ %i Hz", atom_getint(&argv[0]), atom_getint(&argv[1]), atom_getint(&argv[2]));
-		post("OpenNI:: %s", xnGetStatusString(rc));
+		if (g_depth)
+		{
+			XnStatus rc;	
+			XnMapOutputMode mapMode;
+			mapMode.nXRes = atom_getint(&argv[0]);
+			mapMode.nYRes = atom_getint(&argv[1]);
+			mapMode.nFPS = atom_getint(&argv[2]);
+			rc = g_depth.SetMapOutputMode(mapMode);
+			post("OpenNI:: trying to set depth mode to %ix%i @ %i Hz", atom_getint(&argv[0]), atom_getint(&argv[1]), atom_getint(&argv[2]));
+			post("OpenNI:: %s", xnGetStatusString(rc));
+		} else {
+			post("OpenNI:: depth generator not started");
+		}
 	}
 }
 
@@ -1229,23 +1240,27 @@ void pix_openni :: bangMess ()
 {
 	// OUTPUT OPENNI DEVICES OPENED
 	int nRetVal;
-	
+
 	NodeInfoList devicesList;
-	  nRetVal = g_context.EnumerateExistingNodes(devicesList, XN_NODE_TYPE_DEVICE);
-	  if (nRetVal != XN_STATUS_OK)
-	  {
-	    post("Failed to enumerate device nodes: %s\n", xnGetStatusString(nRetVal));
-	    return;
-	  }
-		int i=0;
-		for (NodeInfoList::Iterator it = devicesList.Begin(); it != devicesList.End(); ++it, ++i)
-		  {
-		    // Create the device node
-		    NodeInfo deviceInfo = *it;
+	nRetVal = g_context.EnumerateExistingNodes(devicesList, XN_NODE_TYPE_DEVICE);
+	if (nRetVal != XN_STATUS_OK)
+	{
+		post("Failed to enumerate device nodes: %s\n", xnGetStatusString(nRetVal));
+		return;
+	}
+	if (devicesList.IsEmpty())
+	{
+		post("OpenNI:: no device available!");
+	}
+	int i=0;
+	for (NodeInfoList::Iterator it = devicesList.Begin(); it != devicesList.End(); ++it, ++i)
+	{
+				// Create the device node
+		NodeInfo deviceInfo = *it;
 
-		    post ("Opened Device: %s", deviceInfo.GetInstanceName());
+		post ("Opened Device: %s", deviceInfo.GetInstanceName());
 
-		}
+	}
 
 	// OUTPUT AVAILABLE MODES
 	if (depth_started)
@@ -1256,25 +1271,29 @@ void pix_openni :: bangMess ()
 		XnMapOutputMode* aMode = new XnMapOutputMode[xNum];
 		g_depth.GetSupportedMapOutputModes( aMode, xNum );for( unsigned int i = 0; i < xNum; ++ i )
 		{
-					post("Mode %i : %ix%i @ %d Hz", i, aMode[i].nXRes, aMode[i].nYRes, aMode[i].nFPS);
+			post("Mode %i : %ix%i @ %d Hz", i, aMode[i].nXRes, aMode[i].nYRes, aMode[i].nFPS);
 
 		}	
 		delete[] aMode;
+	} else {
+		post("OpenNI:: depth generator not started");
 	}
-	
+
 	if (rgb_started)
 	{
 		post("OpenNI:: Current Image (rgb) Output Mode: %ix%i @ %d Hz", g_imageMD.XRes(), g_imageMD.YRes(), g_imageMD.FPS());
-					
+
 		XnUInt32 xNum = g_image.GetSupportedMapOutputModesCount();
 		post("OpenNI:: Supported image (rgb) modes:");
 		XnMapOutputMode* aMode = new XnMapOutputMode[xNum];
 		g_image.GetSupportedMapOutputModes( aMode, xNum );for( unsigned int i = 0; i < xNum; ++ i )
 		{
-					post("Mode %i : %ix%i @ %d Hz", i, aMode[i].nXRes, aMode[i].nYRes, aMode[i].nFPS);
+			post("Mode %i : %ix%i @ %d Hz", i, aMode[i].nXRes, aMode[i].nYRes, aMode[i].nFPS);
 
 		}	
 		delete[] aMode;
+	} else {
+		post("OpenNI:: image generator not started");
 	}
 }
 
