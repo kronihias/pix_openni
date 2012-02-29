@@ -66,7 +66,7 @@ class GEM_EXTERN pix_openni : public GemBase
     	pix_openni(int argc, t_atom *argv);
     	
     	t_outlet 	*m_dataout;
-    	
+
 			bool m_osc_output;
 			bool m_real_world_coords;
 			
@@ -109,6 +109,7 @@ class GEM_EXTERN pix_openni : public GemBase
       bool rgb_started;
       bool depth_started;
       bool audio_started;
+			bool usergen_started;
       bool skeleton_started;
       bool hand_started;
       
@@ -116,8 +117,11 @@ class GEM_EXTERN pix_openni : public GemBase
       bool depth_wanted;
       bool audio_wanted;
       bool skeleton_wanted;
+			bool usergen_wanted;
       bool hand_wanted;
-      
+
+			bool m_usercoloring;
+
       bool destroy_thread; // shutdown...
       
 			int	depth_output;
@@ -129,9 +133,10 @@ class GEM_EXTERN pix_openni : public GemBase
         
 			int 		m_width;
 			int			m_height;
-	
+			
 			XnCallbackHandle hUserCallbacks, hCalibrationStartCallback, hCalibrationCompleteCallback, hPoseCallbacks, hUserExitCallback, hUserReEnterCallback, hHandsCallbacks, hGestureCallbacks;
-	
+			XnCallbackHandle hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress;
+			
 			XnChar strRequiredCalibrationPose[XN_MAX_NAME_LENGTH];
 	
 			bool      m_rendering; // "true" when rendering is on, false otherwise
@@ -172,6 +177,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void    	UserInfoMessCallback(void *data);
     	static void    	floatRgbMessCallback(void *data, float rgb);
     	static void    	floatDepthMessCallback(void *data, float depth);
+    	static void    	floatUsergenMessCallback(void *data, float value);
     	static void    	floatSkeletonMessCallback(void *data, float skeleton);
     	static void    	floatHandMessCallback(void *data, float hand);
     	static void    	floatDepthOutputMessCallback(void *data, float depth_output);

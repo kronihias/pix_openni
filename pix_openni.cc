@@ -60,6 +60,7 @@ DepthGenerator g_depth;
 ImageGenerator g_image;
 DepthMetaData g_depthMD;
 ImageMetaData g_imageMD;
+SceneMetaData g_sceneMD;
 
 Recorder g_recorder;
 
@@ -362,9 +363,11 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	depth_wanted = false;
 	depth_started= false; 
 	rgb_wanted = false;
-	rgb_started= false; 
+	rgb_started= false;
+	usergen_wanted = false;
+	usergen_started = false;
 	skeleton_wanted = false;
-	skeleton_started= false; 
+	skeleton_started = false;
 	hand_wanted = false;
 	hand_started= false; 
 	
@@ -375,6 +378,8 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	m_real_world_coords = false;
 	
 	m_auto_calibration = true;
+	
+	m_usercoloring = false;
 	
 	depth_output = 0;
 	req_depth_output = 0;
@@ -700,62 +705,90 @@ void pix_openni :: render(GemState *state)
 			
 			// SKELETON CODE IN RENDER METHOD!! -> PACK INTO THREAD!
 
-			if (skeleton_wanted && !skeleton_started)
+			if ((usergen_wanted && !usergen_started) || (skeleton_wanted && !usergen_started))
 			{
-				post("trying to start skeleton...");
-					rc = g_context.FindExistingNode(XN_NODE_TYPE_USER, g_UserGenerator);
-					//if (nRetVal != XN_STATUS_OK)
-					post("OpenNI:: skeleton found skeleton? : %s", xnGetStatusString(rc));
-					
-					rc = g_UserGenerator.Create(g_context);
-					if (rc != XN_STATUS_OK)
-					{
-						post("OpenNI:: skeleton node couldn't be created! %s", xnGetStatusString(rc));
-						skeleton_wanted=false;
-					} else {
-						XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress;
-						if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
-						{
-							post("Supplied user generator doesn't support skeleton\n");
-						}
+				post("OpenNI:: trying to start usergenerator...");
+
+				rc = g_UserGenerator.Create(g_context); // create user generator
+				if (rc != XN_STATUS_OK) {
+					post("OpenNI:: user generator node couldn't be created! %s", xnGetStatusString(rc));
+					usergen_wanted=false;
+					skeleton_wanted=false;
+					return;
+				}
+				post("OpenNI:: user generator created! %s", xnGetStatusString(rc));
+				
+				rc = g_UserGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, this, hUserCallbacks);
+				post("OpenNI:: Register to user callbacks: %s", xnGetStatusString(rc));
+				
+						// just a test
+						//UserPositionCapability userCap = g_depth.GetUserPositionCap();
+						//post("OpenNI:: UserPositionCapability: %i", (int)userCap.GetSupportedUserPositionsCount());
+						//XnBoundingBox3D boundingBox;
+
+						//for (XnInt32 i = 0; i < userCap.GetSupportedUserPositionsCount(); i++ )
+						//{
+						//   userCap.GetUserPosition(i, boundingBox );
+						//}
 						
-						rc = g_UserGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, this, hUserCallbacks);
-						post("Register to user callbacks: %s", xnGetStatusString(rc));
-						rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, hCalibrationStart);
-						post("Register to calibration start: %s", xnGetStatusString(rc));
-						rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationComplete, this, hCalibrationComplete);
-						post("Register to calibration complete: %s", xnGetStatusString(rc));
-
-						if (g_UserGenerator.GetSkeletonCap().NeedPoseForCalibration())
-						{
-							g_bNeedPose = TRUE;
-							if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
-							{
-								post("Pose required, but not supported\n");
-							}
-							rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, this, hPoseDetected);
-							post("Register to Pose Detected", rc);
-							g_UserGenerator.GetSkeletonCap().GetCalibrationPose(g_strPose);
-						}
-
-						g_UserGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-
-						//rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationInProgress(MyCalibrationInProgress, NULL, hCalibrationInProgress);
-						post("Register to calibration in progress", rc);
-
-						//rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseInProgress(MyPoseInProgress, NULL, hPoseInProgress);
-						post("Register to pose in progress", rc);
-						
-						g_context.StartGeneratingAll();
-						
-						skeleton_started = true;
-					}
+				g_context.StartGeneratingAll();
+				usergen_started=true;
 			}
 			
-			if (!skeleton_wanted && skeleton_started)
+			if (skeleton_wanted && !skeleton_started && usergen_started)
+			{
+				post("OpenNI:: trying to start skeleton...");
+
+				if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
+				{
+					post("OpenNI:: Supplied user generator doesn't support skeleton\n");
+					return;
+				}
+
+				//skeleton specific
+				rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, this, hCalibrationStart);
+				post("OpenNI:: Register to calibration start: %s", xnGetStatusString(rc));
+				rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationComplete, this, hCalibrationComplete);
+				post("OpenNI:: Register to calibration complete: %s", xnGetStatusString(rc));
+
+				if (g_UserGenerator.GetSkeletonCap().NeedPoseForCalibration())
+				{
+					g_bNeedPose = TRUE;
+					if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
+					{
+						post("OpenNI:: Pose required, but not supported\n");
+					}
+					rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, this, hPoseDetected);
+					post("OpenNI:: Register to Pose Detected", rc);
+					g_UserGenerator.GetSkeletonCap().GetCalibrationPose(g_strPose);
+				}
+
+				g_UserGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
+
+						// that could be used to check if calibration is going on in the moment -> i think not necessary now
+						//rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationInProgress(MyCalibrationInProgress, NULL, hCalibrationInProgress);
+						//post("Register to calibration in progress", rc);
+						//rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseInProgress(MyPoseInProgress, NULL, hPoseInProgress);
+						//post("Register to pose in progress", rc);
+
+				g_context.StartGeneratingAll();
+
+				skeleton_started = true;
+			}
+			
+			if (!skeleton_wanted && skeleton_started) // unregister skeleton callbacks
+			{
+				// crash if unregister...? hmm
+				//g_UserGenerator.GetSkeletonCap().UnregisterFromCalibrationStart(hCalibrationStart);
+				//g_UserGenerator.GetSkeletonCap().UnregisterFromCalibrationComplete(hCalibrationComplete);
+				//g_UserGenerator.GetPoseDetectionCap().UnregisterFromPoseDetected(hPoseDetected);
+				skeleton_started = false;
+			}
+			
+			if (!usergen_wanted && usergen_started && !skeleton_wanted && !skeleton_started)
 			{
 				g_UserGenerator.Release();
-				skeleton_started = false;
+				usergen_started = false;
 			}
 			
 			
@@ -790,7 +823,7 @@ void pix_openni :: render(GemState *state)
 			if (hand_wanted && !hand_started)
 			{
 				post("trying to start hand tracking...");
-				XnCallbackHandle hHandsCallbacks, hGestureCallbacks;
+				//XnCallbackHandle hHandsCallbacks, hGestureCallbacks;
 				rc = g_HandsGenerator.Create(g_context);
 				if (rc != XN_STATUS_OK)
 				{
@@ -922,6 +955,15 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 			}
 			
 			g_depth.GetMetaData(g_depthMD);
+			
+				// user coloring
+				if (g_UserGenerator && m_usercoloring)
+				{
+					g_UserGenerator.GetUserPixels(0, g_sceneMD);
+
+				}
+			const XnLabel* pLabels = g_sceneMD.Data();
+			
 			//const XnDepthPixel* pDepth = g_depthMD.Data();
 			const XnDepthPixel* pDepth = g_depth.GetDepthMap(); 
 			
@@ -983,10 +1025,19 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
 					
 					for(int y = 0; y < 640*480; y++) {
-						pixels[y+index_offset]=(uint8_t)(depth_pixel[y] >> 5);
-						//pixels[4*y+1+index_offset]=(uint8_t)(depth_pixel[y] / 2);
-						//pixels[4*y+2+index_offset]=(uint8_t)(depth_pixel[y] / 2);
-						//pixels[4*y+2+index_offset]=(uint8_t)(depth_pixel[y] / 2);
+						XnLabel label = 0;
+						if (g_UserGenerator && m_usercoloring)
+						{
+							XnLabel label = *pLabels;
+						}
+						if (label != 0)
+						{
+							pixels[y+index_offset]=255;
+						} else {
+							pixels[y+index_offset]=(uint8_t)(depth_pixel[y] >> 5);
+						}
+
+						pLabels++;
 					}
 				}
 
@@ -1319,6 +1370,8 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
   		  gensym("rgb"), A_FLOAT, A_NULL);
   class_addmethod(classPtr, (t_method)&pix_openni::floatDepthMessCallback,
   		  gensym("depth"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatUsergenMessCallback,
+		  	gensym("usergen"), A_FLOAT, A_NULL);
   class_addmethod(classPtr, (t_method)&pix_openni::floatSkeletonMessCallback,
   		  gensym("skeleton"), A_FLOAT, A_NULL);
   class_addmethod(classPtr, (t_method)&pix_openni::floatHandMessCallback,
@@ -1392,7 +1445,7 @@ void pix_openni :: floatRealWorldCoordsMessCallback(void *data, t_floatarg value
 void pix_openni :: StartUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv)
 {
 	pix_openni *me = (pix_openni*)GetMyClass(data);
-	if (g_UserGenerator)
+	if (me->skeleton_started)
 	{
 		int nRetVal = 0;
 		if (argc == 0) // start all users
@@ -1421,7 +1474,7 @@ void pix_openni :: StartUserMessCallback(void *data, t_symbol*s, int argc, t_ato
 void pix_openni :: StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv)
 {
 	pix_openni *me = (pix_openni*)GetMyClass(data);
-	if (g_UserGenerator)
+	if (me->skeleton_started)
 	{
 		int nRetVal = 0;
 		if (argc == 0) // reset all users
@@ -1443,11 +1496,12 @@ void pix_openni :: StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom
 	}
 }
 
-// user info to outlet: num_users [#] OR /skeleton/num_users [#] AND user [id] [is_tracking] OR /skeleton/user [id] [is_tracking]
+// user info to outlet: num_users [#] OR /skeleton/num_users [#] AND user [id] [is_tracking] [x y z] OR /skeleton/user [id] [is_tracking] [x y z]
+// [x y z] is center of mass
 void pix_openni :: UserInfoMessCallback(void *data)
 {
 	pix_openni *me = (pix_openni*)GetMyClass(data);
-	if (g_UserGenerator)
+	if (me->usergen_started)
 	{
 		XnUserID aUsers[15];
 		XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
@@ -1462,26 +1516,46 @@ void pix_openni :: UserInfoMessCallback(void *data)
 		} else {
 			outlet_anything(me->m_dataout, gensym("num_users"), 1, ap);
 		}
-		me->post("OpenNI:: number of detected users: %i", (int)nUsers);
+		//me->post("OpenNI:: number of detected users: %i", (int)nUsers);
+		
+		/*
+		// not outputing data in the moment?
+		UserPositionCapability userCap = g_depth.GetUserPositionCap();
+		me->post("OpenNI:: UserPositionCapability: %i", (int)userCap.GetSupportedUserPositionsCount());
+		XnBoundingBox3D boundingBox;
+
+		for (XnInt32 i = 0; i < userCap.GetSupportedUserPositionsCount(); i++ )
+		{
+			userCap.GetUserPosition(i, boundingBox);
+			me->post("Bounding Box User %i: left bottom: %i %i %i  right top: %i %i %i", i, boundingBox.LeftBottomNear.X, boundingBox.LeftBottomNear.Y, boundingBox.LeftBottomNear.Z, boundingBox.RightTopFar.X, boundingBox.RightTopFar.Y, boundingBox.RightTopFar.Z);
+		}
+		*/
+		
 		for (int i = 0; i < nUsers; ++i)
 		{		
-			t_atom ap[2];
+			t_atom ap[5];
 			SETFLOAT (ap, (int)aUsers[i]);
 			SETFLOAT (ap+1, (int)g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]));
 			
-			if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
+			XnPoint3D com; // get center of mass
+			g_UserGenerator.GetCoM(aUsers[i],com);
+			
+			if (!me->m_real_world_coords)
 			{
-				me->post("OpenNI:: user %i with skeleton tracking", (int)aUsers[i]);
-			} else {
-				me->post("OpenNI:: user %i without skeleton", (int)aUsers[i]);
+				com.X = off_x + (mult_x * (480 - com.X) / 960); //Normalize coords to 0..1 interval
+				com.Y = off_y + (mult_y * (320 - com.Y) / 640); //Normalize coords to 0..1 interval
+				com.Z = off_z + (mult_z * com.Z * 7.8125 / 10000); //Normalize coords to 0..7.8125 interval
 			}
 			
+			SETFLOAT (ap+2, com.X);
+			SETFLOAT (ap+3, com.Y);
+			SETFLOAT (ap+4, com.Z);
 			
 			if (me->m_osc_output)
 			{
-				outlet_anything(me->m_dataout, gensym("/skeleton/user"), 2, ap);
+				outlet_anything(me->m_dataout, gensym("/skeleton/user"), 5, ap);
 			} else {
-				outlet_anything(me->m_dataout, gensym("user"), 2, ap);
+				outlet_anything(me->m_dataout, gensym("user"), 5, ap);
 			}
 		}
 	}	
@@ -1629,6 +1703,14 @@ void pix_openni :: floatDepthMessCallback(void *data, t_floatarg depth)
 		me->depth_wanted=true;
 }
 
+void pix_openni :: floatUsergenMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((int)value == 0)
+		me->usergen_wanted=false;
+  if ((int)value == 1)
+		me->usergen_wanted=true;
+}
 void pix_openni :: floatSkeletonMessCallback(void *data, t_floatarg skeleton)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
