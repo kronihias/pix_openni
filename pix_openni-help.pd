@@ -20,107 +20,113 @@
 #X floatatom 332 363 5 0 0 0 - - -;
 #X obj 332 323 loadbang;
 #X obj 109 226 translateXYZ -3 2 0;
-#N canvas 199 341 1029 438 properties 0;
-#X text 14 17 properties for pix_openni;
-#X obj 39 54 cnv 15 300 150 empty empty empty 20 12 0 14 -232576 -66577
+#N canvas 222 247 1029 438 properties 1;
+#X text 24 17 properties for pix_openni;
+#X obj 49 54 cnv 15 300 150 empty empty empty 20 12 0 14 -232576 -66577
 0;
-#X msg 55 122 rgb \$1;
-#X obj 55 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+#X msg 65 122 rgb \$1;
+#X obj 65 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 0;
-#X obj 112 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+#X obj 122 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 0;
-#X msg 112 122 depth \$1;
-#X obj 180 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+#X msg 122 122 depth \$1;
+#X obj 190 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 1;
-#X obj 256 148 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+#X obj 266 148 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
 -1 -1 0;
-#X msg 256 182 hand \$1;
-#X text 77 86 OFF;
-#X text 77 102 ON;
-#X obj 54 162 s \$0-prop;
-#X text 49 59 TURN ON/OFF STREAMS;
-#X obj 363 55 cnv 15 300 150 empty empty empty 20 12 0 14 -260097 -66577
+#X msg 266 182 hand \$1;
+#X text 87 86 OFF;
+#X text 87 102 ON;
+#X obj 64 162 s \$0-prop;
+#X text 59 59 TURN ON/OFF STREAMS;
+#X obj 373 55 cnv 15 300 150 empty empty empty 20 12 0 14 -260097 -66577
 0;
-#X msg 400 130 depth_mode 640 480 30;
-#X msg 374 83 video_mode 640 480 30;
-#X msg 384 102 video_mode 1280 1024 15;
-#X text 376 59 change video/depth mode of OpenNI;
-#X msg 497 151 bang;
-#X text 535 151 view available modes;
-#X obj 379 170 s \$0-prop;
-#X obj 38 222 cnv 15 300 150 empty empty empty 20 12 0 14 -204800 -66577
+#X msg 410 130 depth_mode 640 480 30;
+#X msg 384 83 video_mode 640 480 30;
+#X msg 394 102 video_mode 1280 1024 15;
+#X text 386 59 change video/depth mode of OpenNI;
+#X msg 507 151 bang;
+#X text 545 151 view available modes;
+#X obj 389 170 s \$0-prop;
+#X obj -2 222 cnv 15 350 150 empty empty empty 20 12 0 14 -204800 -66577
 0;
-#X msg 45 315 depth_output \$1;
-#X obj 45 250 vradio 15 1 0 4 empty empty empty 0 -8 0 10 -262144 -1
--1 0;
-#X msg 234 308 registration \$1;
-#X obj 234 274 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 0;
-#X obj 45 349 s \$0-prop;
-#X text 41 223 DEPTH OUTPUT PROPERTIES;
-#X obj 364 223 cnv 15 300 150 empty empty empty 20 12 0 14 -162280
--66577 0;
-#X obj 407 317 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 0;
-#X text 429 315 OFF;
-#X text 429 331 ON;
-#X obj 406 255 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 0;
-#X text 425 253 OFF;
-#X text 425 269 ON;
-#X msg 406 289 real_world_coords \$1;
-#X msg 407 351 osc_style_output \$1;
-#X text 456 266 z: 0-7;
-#X text 455 253 if OFF x and y are normalized 0-1;
-#X text 390 226 tracking data properties (skeleton \, hand);
-#X obj 369 379 s \$0-prop;
-#X text 456 314 -> joint r_hand id x y z;
-#X text 451 330 -> /skeleton/joint/r_hand id x y z;
-#X text 236 239 Match viewpoints;
-#X text 236 254 of RGB and Depth;
-#X text 252 271 OFF;
-#X text 252 287 ON;
-#X text 64 247 normal -> human viewable;
-#X text 65 263 greyscale (1 byte);
-#X text 64 279 raw rgba -> mm in r&g ch.;
-#X text 64 295 raw yuv (2 byte)->16 bit mm;
-#X obj 685 125 cnv 15 300 250 empty empty empty 20 12 0 14 -128992
--66577 0;
-#X obj 690 344 s \$0-prop;
-#X floatatom 810 148 5 0 0 0 - - -;
-#X text 691 125 skeleton specific;
-#X msg 698 259 userinfo;
-#X text 758 247 userinfo to outlet;
-#X text 771 261 num_users [#];
-#X msg 690 163 stop_user;
-#X msg 810 167 stop_user \$1;
-#X floatatom 811 189 5 0 0 0 - - -;
-#X msg 695 222 start_user;
-#X msg 811 208 start_user \$1;
-#X text 692 190 start calibration;
-#X obj 781 309 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 0;
-#X text 800 307 OFF;
-#X text 800 323 ON;
-#X text 773 291 start calibration if user detected;
-#X msg 781 343 auto_calibration \$1;
-#X text 692 203 for all users;
-#X text 848 134 stop skeleton for;
-#X text 852 150 specific user;
-#X text 687 144 stop all skeletons;
-#X text 848 187 start calibration for;
-#X text 912 202 spec. user;
-#X text 827 322 default: ON;
-#X obj 255 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+#X msg 5 315 depth_output \$1;
+#X obj 5 250 vradio 15 1 0 4 empty empty empty 0 -8 0 10 -262144 -1
 -1 1;
-#X msg 255 122 skeleton \$1;
-#X msg 180 122 usergen \$1;
-#X text 771 273 user [id] [is_tracking] x y z (com);
+#X msg 232 291 registration \$1;
+#X obj 232 257 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X obj 5 349 s \$0-prop;
+#X text 1 223 DEPTH OUTPUT PROPERTIES;
+#X obj 374 223 cnv 15 300 150 empty empty empty 20 12 0 14 -162280
+-66577 0;
+#X obj 417 317 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X text 439 315 OFF;
+#X text 439 331 ON;
+#X obj 416 255 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X text 435 253 OFF;
+#X text 435 269 ON;
+#X msg 416 289 real_world_coords \$1;
+#X msg 417 351 osc_style_output \$1;
+#X text 466 266 z: 0-7;
+#X text 465 253 if OFF x and y are normalized 0-1;
+#X text 400 226 tracking data properties (skeleton \, hand);
+#X obj 379 379 s \$0-prop;
+#X text 466 314 -> joint r_hand id x y z;
+#X text 461 330 -> /skeleton/joint/r_hand id x y z;
+#X text 234 222 Match viewpoints;
+#X text 234 237 of RGB and Depth;
+#X text 250 254 OFF;
+#X text 250 270 ON;
+#X text 22 247 normal -> human viewable;
+#X obj 695 125 cnv 15 300 250 empty empty empty 20 12 0 14 -128992
+-66577 0;
+#X obj 700 344 s \$0-prop;
+#X floatatom 820 148 5 0 0 0 - - -;
+#X text 701 125 skeleton specific;
+#X msg 708 259 userinfo;
+#X text 768 247 userinfo to outlet;
+#X text 781 261 num_users [#];
+#X msg 700 163 stop_user;
+#X msg 820 167 stop_user \$1;
+#X floatatom 821 189 5 0 0 0 - - -;
+#X msg 705 222 start_user;
+#X msg 821 208 start_user \$1;
+#X text 702 190 start calibration;
+#X obj 791 309 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 0;
+#X text 810 307 OFF;
+#X text 810 323 ON;
+#X text 783 291 start calibration if user detected;
+#X msg 791 343 auto_calibration \$1;
+#X text 702 203 for all users;
+#X text 858 134 stop skeleton for;
+#X text 862 150 specific user;
+#X text 697 144 stop all skeletons;
+#X text 858 187 start calibration for;
+#X text 922 202 spec. user;
+#X text 837 322 default: ON;
+#X obj 265 88 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
+-1 0;
+#X msg 265 122 skeleton \$1;
+#X msg 190 122 usergen \$1;
+#X text 781 273 user [id] [is_tracking] x y z (com);
+#X obj 232 315 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
+-1 -1 1;
+#X text 250 313 OFF;
+#X text 250 329 ON;
+#X msg 232 349 usercoloring \$1;
+#X text 268 328 needs usergen;
+#X text 22 295 raw yuv (2 byte)->16 bit mm;
+#X text 23 263 greyscale (8 bit);
+#X text 22 279 raw rgba -> mm in r&g \, userid b ch.;
 #X connect 2 0 11 0;
 #X connect 3 0 2 0;
 #X connect 4 0 5 0;
 #X connect 5 0 11 0;
-#X connect 6 0 78 0;
+#X connect 6 0 75 0;
 #X connect 7 0 8 0;
 #X connect 8 0 11 0;
 #X connect 14 0 20 0;
@@ -135,18 +141,20 @@
 #X connect 32 0 35 0;
 #X connect 35 0 40 0;
 #X connect 36 0 40 0;
-#X connect 53 0 59 0;
-#X connect 55 0 52 0;
-#X connect 58 0 52 0;
-#X connect 59 0 52 0;
-#X connect 60 0 62 0;
-#X connect 61 0 52 0;
-#X connect 62 0 52 0;
-#X connect 64 0 68 0;
-#X connect 68 0 52 0;
-#X connect 76 0 77 0;
-#X connect 77 0 11 0;
-#X connect 78 0 11 0;
+#X connect 50 0 56 0;
+#X connect 52 0 49 0;
+#X connect 55 0 49 0;
+#X connect 56 0 49 0;
+#X connect 57 0 59 0;
+#X connect 58 0 49 0;
+#X connect 59 0 49 0;
+#X connect 61 0 65 0;
+#X connect 65 0 49 0;
+#X connect 73 0 74 0;
+#X connect 74 0 11 0;
+#X connect 75 0 11 0;
+#X connect 77 0 80 0;
+#X connect 80 0 26 0;
 #X restore 43 87 pd properties;
 #X obj 295 274 translateXYZ 3 2 0;
 #N canvas 1 151 319 137 pix_info 0;
@@ -190,56 +198,64 @@
 #X text 614 182 5th: hand tracking on;
 #X text 613 117 1st: kinect ID/serial --> just dummy;
 #X obj 109 155 pix_openni 0 1 1 0 0;
-#N canvas 182 223 857 435 distance_measurement 0;
+#N canvas 423 365 857 435 distance_measurement 0;
 #X obj -106 43 inlet;
 #X obj -196 90 pix_data;
 #X floatatom -57 54 5 0 0 0 - - -;
 #X floatatom -20 54 5 0 0 0 - - -;
-#X obj -174 141 unpack 0 0 0;
 #X floatatom -172 163 5 0 0 0 - - -;
 #X floatatom -133 163 5 0 0 0 - - -;
-#X floatatom -93 163 5 0 0 0 - - -;
 #X msg -57 29 0.5;
 #X obj -140 202 * 256;
 #X obj -210 202 * 65536;
 #X obj -210 232 +;
 #X obj -196 48 metro 100;
-#X obj -196 25 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj -196 25 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X text -129 88 output pixel rgb value;
-#X text -92 140 r g b;
-#X text -101 201 second and first 8 bits;
+#X text -80 140 r g b;
 #X text 178 27 -> see properties;
 #X text 22 53 x \, y pixel position in range 0 - 1;
 #X text 121 65 (from depth image);
 #X text -178 24 ON/OFF;
 #X obj -210 314 nbx 5 60 -1e+37 1e+37 0 0 empty empty m 300 22 0 60
--262144 -1 -1 0 256;
+-262144 -1 -1 20.3826 256;
 #X obj -210 260 / 1000;
 #X obj -57 7 loadbang;
 #X text -184 232 16 bit;
 #X text 12 10 for distance measurement use !!!raw depth output!!!;
 #X msg 333 13 depth_output 2;
 #X obj 333 37 s \$0-prop;
+#X obj 110 141 print;
+#X obj 129 188 * 256;
+#X floatatom 129 243 5 0 0 0 - - -;
+#X text 166 243 user id;
+#X obj 129 215 int;
+#X text 157 212 due to numerical inaccuracy;
+#X text -97 201 MSB and LSB 2x8 bits;
+#X obj -174 141 unpack 0 0 0;
+#X text 127 169 user id if usergen activated;
 #X connect 0 0 1 1;
-#X connect 1 1 4 0;
+#X connect 1 1 32 0;
 #X connect 2 0 1 2;
 #X connect 3 0 1 3;
-#X connect 4 0 5 0;
-#X connect 4 0 10 0;
-#X connect 4 1 6 0;
-#X connect 4 1 9 0;
-#X connect 4 2 7 0;
-#X connect 8 0 2 0;
-#X connect 8 0 3 0;
-#X connect 9 0 11 1;
-#X connect 10 0 11 0;
-#X connect 11 0 22 0;
-#X connect 12 0 1 0;
-#X connect 13 0 12 0;
-#X connect 22 0 21 0;
-#X connect 23 0 8 0;
-#X connect 26 0 27 0;
+#X connect 6 0 2 0;
+#X connect 6 0 3 0;
+#X connect 7 0 9 1;
+#X connect 8 0 9 0;
+#X connect 9 0 19 0;
+#X connect 10 0 1 0;
+#X connect 11 0 10 0;
+#X connect 19 0 18 0;
+#X connect 20 0 6 0;
+#X connect 23 0 24 0;
+#X connect 26 0 29 0;
+#X connect 29 0 27 0;
+#X connect 32 0 4 0;
+#X connect 32 0 8 0;
+#X connect 32 1 5 0;
+#X connect 32 1 7 0;
+#X connect 32 2 26 0;
 #X restore 416 422 pd distance_measurement;
 #X msg 146 295 0.5;
 #X msg 332 343 0.5;
@@ -418,7 +434,7 @@ later;
 #X text 407 162 depth;
 #X text 296 175 cur;
 #X text 411 175 cur;
-#N canvas 242 335 585 405 user_center_of_mass 1;
+#N canvas 242 335 585 405 user_center_of_mass 0;
 #X obj 35 42 inlet;
 #X obj 35 70 route user;
 #X obj 35 99 unpack f f f f f;

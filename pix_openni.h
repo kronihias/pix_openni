@@ -174,6 +174,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void    	StartUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
 			static void    	StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
 			static void    	floatAutoCalibrationMessCallback(void *data, float value);
+			static void    	floatUserColoringMessCallback(void *data, float value);
 			static void    	UserInfoMessCallback(void *data);
     	static void    	floatRgbMessCallback(void *data, float rgb);
     	static void    	floatDepthMessCallback(void *data, float depth);

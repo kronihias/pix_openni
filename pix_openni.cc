@@ -90,6 +90,22 @@ float off_x = 0;
 float off_y = 0;
 float off_z = 0;
 
+// user colors
+XnFloat Colors[][3] =
+{
+	{0,1,1},
+	{0,0,1},
+	{0,1,0},
+	{1,1,0},
+	{1,0,0},
+	{1,.5,0},
+	{.5,1,0},
+	{0,.5,1},
+	{.5,0,1},
+	{1,1,.5},
+	{1,1,1}
+};
+XnUInt32 nColors = 10;
 
 //gesture callbacks
 void XN_CALLBACK_TYPE Gesture_Recognized(xn::GestureGenerator& generator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie) {
@@ -956,58 +972,68 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 			
 			g_depth.GetMetaData(g_depthMD);
 			
-				// user coloring
-				if (g_UserGenerator && m_usercoloring)
-				{
-					g_UserGenerator.GetUserPixels(0, g_sceneMD);
-
-				}
-			const XnLabel* pLabels = g_sceneMD.Data();
+			const XnLabel* pLabels = NULL;
+			// user coloring -> get pixelmap with userid
+			if (usergen_started && m_usercoloring)
+			{
+				g_UserGenerator.GetUserPixels(0, g_sceneMD);
+			}
+			pLabels = g_sceneMD.Data();
 			
 			//const XnDepthPixel* pDepth = g_depthMD.Data();
 			const XnDepthPixel* pDepth = g_depth.GetDepthMap(); 
 			
 				if (depth_output == 0) // RGBA mapped
 				{
-		
 					uint8_t *pixels = m_depth.image.data;
-		
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
 					
 					for( unsigned int i = 0 ; i < 640*480 ; i++) {
+						// user labeling
+						XnLabel label = 0;
+						if (usergen_started && m_usercoloring)
+						{
+							label = *pLabels;
+						}
+						XnUInt32 nColorID = label % nColors;
+						if (label == 0)
+						{
+							nColorID = nColors;
+						}
+						
 						int pval = t_gamma[depth_pixel[i]];
 						int lb = pval & 0xff;
 						int form_mult = 4; // Changed for RGBA (4 instead of originally 3)
 						switch (pval>>8) {
 						case 0:																					
-							pixels[form_mult*i+0+index_offset] = 255;
-							pixels[form_mult*i+1+index_offset] = 255-lb;
-							pixels[form_mult*i+2+index_offset] = 255-lb;
+							pixels[form_mult*i+0+index_offset] = 255 * Colors[nColorID][0];
+							pixels[form_mult*i+1+index_offset] = (255-lb) * Colors[nColorID][1];
+							pixels[form_mult*i+2+index_offset] = (255-lb) * Colors[nColorID][2];
 							break;
 						case 1:
-							pixels[form_mult*i+0+index_offset] = 255;
-							pixels[form_mult*i+1+index_offset] = lb;
+							pixels[form_mult*i+0+index_offset] = 255 * Colors[nColorID][0];
+							pixels[form_mult*i+1+index_offset] = lb * Colors[nColorID][1];
 							pixels[form_mult*i+2+index_offset] = 0;
 							break;
 						case 2:
-							pixels[form_mult*i+0+index_offset] = 255-lb;
-							pixels[form_mult*i+1+index_offset] = 255;
+							pixels[form_mult*i+0+index_offset] = (255-lb) * Colors[nColorID][0];
+							pixels[form_mult*i+1+index_offset] = 255 * Colors[nColorID][1];
 							pixels[form_mult*i+2+index_offset] = 0;
 							break;
 						case 3:
 							pixels[form_mult*i+0+index_offset] = 0;
-							pixels[form_mult*i+1+index_offset] = 255;
-							pixels[form_mult*i+2+index_offset] = lb;
+							pixels[form_mult*i+1+index_offset] = 255 * Colors[nColorID][1];
+							pixels[form_mult*i+2+index_offset] = lb * Colors[nColorID][2];
 							break;
 						case 4:
 							pixels[form_mult*i+0+index_offset] = 0;
-							pixels[form_mult*i+1+index_offset] = 255-lb;
-							pixels[form_mult*i+2+index_offset] = 255;
+							pixels[form_mult*i+1+index_offset] = (255-lb) * Colors[nColorID][1];
+							pixels[form_mult*i+2+index_offset] = 255 * Colors[nColorID][2];
 							break;
 						case 5:
-							pixels[form_mult*i+0+index_offset] = 0;
+							pixels[form_mult*i+0+index_offset] = 0 * Colors[nColorID][0];
 							pixels[form_mult*i+1+index_offset] = 0;
-							pixels[form_mult*i+2+index_offset] = 255-lb;
+							pixels[form_mult*i+2+index_offset] = (255-lb) * Colors[nColorID][2];
 							break;
 						default:
 							pixels[form_mult*i+0+index_offset] = 0;
@@ -1015,6 +1041,7 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 							pixels[form_mult*i+2+index_offset] = 0;
 							break;
 						}
+					pLabels++;
 					}
 				}
 				
@@ -1025,10 +1052,11 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
 					
 					for(int y = 0; y < 640*480; y++) {
+						// user coloring
 						XnLabel label = 0;
-						if (g_UserGenerator && m_usercoloring)
+						if (usergen_started && m_usercoloring)
 						{
-							XnLabel label = *pLabels;
+							label = *pLabels;
 						}
 						if (label != 0)
 						{
@@ -1041,23 +1069,29 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					}
 				}
 
-				if (depth_output == 2) // RAW RGBA
+				if (depth_output == 2) // RAW RGBA -> R 8 MSB, G 8 LSB of 16 bit depth value, B->userid if usergen 1 and usercoloring 1
 				{
 					uint8_t *pixels = m_depth.image.data;
 		
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
 					  
-					for(int y = 0; y < 640*480; y++) {
-						//pixels[4*y]=255;
-						//pixels[4*y+1]=255;
+					for(int y = 0; y < 640*480 - index_offset; y++) {
 						pixels[4*y+index_offset]=(uint8_t)(depth_pixel[y] >> 8);
 						pixels[4*y+1+index_offset]=(uint8_t)(depth_pixel[y] & 0xff);
-						pixels[4*y+2+index_offset]=0;
-						//pixels[4*y+3+index_offset]=0;
+						// user coloring
+						XnLabel label = 0;
+						if (usergen_started && m_usercoloring)
+						{
+							label = *pLabels;
+						}
+						pixels[4*y+2+index_offset]=label; // set user id to b channel
+						pixels[4*y+3+index_offset]=255; // set alpha
+						
+						pLabels++;
 					}
 				}
 				
-				if (depth_output == 3) // RAW YUV
+				if (depth_output == 3) // RAW YUV -> 16 bit Depth
 				{
 					const XnDepthPixel* pDepth = g_depthMD.Data();
 					m_depth.image.data= (unsigned char*)&pDepth[0];
@@ -1392,7 +1426,9 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
 	  	  gensym("userinfo"), A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatAutoCalibrationMessCallback,
 	  	  gensym("auto_calibration"), A_FLOAT, A_NULL);
-
+	class_addmethod(classPtr, (t_method)&pix_openni::floatUserColoringMessCallback,
+			  gensym("usercoloring"), A_FLOAT, A_NULL);
+			
 	class_addmethod(classPtr, (t_method)&pix_openni::openMessCallback,
 	  	  gensym("open"), A_SYMBOL, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatRecordMessCallback,
@@ -1738,6 +1774,14 @@ void pix_openni :: floatAutoCalibrationMessCallback(void *data, t_floatarg value
 		me->m_auto_calibration=true;
 }
 
+void pix_openni :: floatUserColoringMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((int)value == 0)
+		me->m_usercoloring=false;
+  if ((int)value == 1)
+		me->m_usercoloring=true;
+}
 void pix_openni :: renderDepthCallback(void *data, t_symbol*s, int argc, t_atom*argv)
 {
 	GetMyClass(data)->renderDepth(argc, argv);
