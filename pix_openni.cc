@@ -42,6 +42,9 @@ CPPEXTERN_NEW_WITH_GIMME(pix_openni);
 
 #define MAX_DEPTH 10000
 
+#define PI 3.141592653589793
+#define PI_H 1.570796326794897
+
 #define GESTURE_TO_USE "Wave"
 
 //---------------------------------------------------------------------------
@@ -78,8 +81,7 @@ XnBool g_bDrawSkeleton = TRUE;
 XnBool g_bPrintID = TRUE;
 XnBool g_bPrintState = TRUE;
 
-float posConfidence;
-float orientConfidence;
+
 
 //SCELETON SCALE
 float mult_x = 1;
@@ -386,6 +388,7 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	skeleton_started = false;
 	hand_wanted = false;
 	hand_started= false; 
+	m_registration=false;
 	
 	openni_ready = false;
 	destroy_thread = false;
@@ -824,7 +827,7 @@ void pix_openni :: render(GemState *state)
 				
 				for (int i = 0; i < nUsers; ++i) {
 					if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
-						g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(aUsers[i], XN_SKEL_LEFT_HAND, jointTrans);
+						//g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(aUsers[i], XN_SKEL_LEFT_HAND, jointTrans);
 						
 						for(int j = 0; j <= 24; ++j)
 						{
@@ -930,6 +933,14 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					mapMode.nYRes = 480;
 					mapMode.nFPS = 30;
 					g_depth.SetMapOutputMode(mapMode);
+					
+					if (m_registration && rgb_started) // set registration if wanted
+					{
+						if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+						{
+							g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
+						}
+					}
 					depth_started = true;
 					g_context.StartGeneratingAll();
 					post("OpenNI:: Depth node created!");
@@ -1138,14 +1149,18 @@ void pix_openni :: stopRendering(){
 
 void pix_openni :: outputJoint (XnUserID player, XnSkeletonJoint eJoint)
 {
-	t_atom ap[5];
+	t_atom ap[10];
+	//float jointCoords[3];
 	float jointCoords[3];
 
 	XnSkeletonJointTransformation jointTrans;
 
 	g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(player, eJoint, jointTrans);
-
-	posConfidence = jointTrans.position.fConfidence;
+	//float posConfidence;
+	//float orientConfidence;
+	
+	float posConfidence = jointTrans.position.fConfidence; // how reliable is the data?
+	float orientConfidence = jointTrans.orientation.fConfidence; // how reliable is the data?
 
 	if (m_real_world_coords)
 	{
@@ -1157,7 +1172,36 @@ void pix_openni :: outputJoint (XnUserID player, XnSkeletonJoint eJoint)
 		jointCoords[1] = off_y + (mult_y * (960 - jointTrans.position.position.Y) / 1920); //Normalize coords to 0..1 interval
 		jointCoords[2] = off_z + (mult_z * jointTrans.position.position.Z * 7.8125 / 10000); //Normalize coords to 0..7.8125 interval
 	}
-
+	
+	//compute orientation in euler angles from rotation matrix - maybe not correct
+	// http://groups.google.com/group/openni-dev/browse_thread/thread/ccb8e62acd17b95b
+	float thetaX;
+	float thetaY;
+	float thetaZ;
+	
+	if (jointTrans.orientation.orientation.elements[6] < 1.0) // Z1
+	{
+	    if (jointTrans.orientation.orientation.elements[6] > -1.0) // Z1
+	    {
+	        thetaY = asin(jointTrans.orientation.orientation.elements[6]); // Z1
+	        thetaX = atan2(-jointTrans.orientation.orientation.elements[7],jointTrans.orientation.orientation.elements[7]); // Z2, Z2
+	        thetaZ = atan2(-jointTrans.orientation.orientation.elements[3],jointTrans.orientation.orientation.elements[1]); // Y1, X1
+	    }
+	    else // Z1 = -1
+	    {
+	        // Not a unique solution: thetaZ - thetaX = atan2(X2,Y2)
+	        thetaY = -PI_H;
+	        thetaX = -atan2(jointTrans.orientation.orientation.elements[1],jointTrans.orientation.orientation.elements[4]); // X2, Y2
+	        thetaZ = 0;
+	    }
+	} else { // Z1 = +1 
+	    // Not a unique solution: thetaZ + thetaX = atan2(X2,Y2)
+	    thetaY = +PI_H;
+	    thetaX = atan2(jointTrans.orientation.orientation.elements[1],jointTrans.orientation.orientation.elements[4]); // X2, Y2
+	    thetaZ = 0;
+	}
+	
+	
 	if (!m_osc_output)
 	{
 		switch(eJoint)
@@ -1216,8 +1260,13 @@ void pix_openni :: outputJoint (XnUserID player, XnSkeletonJoint eJoint)
 	SETFLOAT (ap+2, jointCoords[0]);
 	SETFLOAT (ap+3, jointCoords[1]);
 	SETFLOAT (ap+4, jointCoords[2]);
+	SETFLOAT (ap+5, posConfidence);
+	SETFLOAT (ap+6, thetaX);
+	SETFLOAT (ap+7, thetaY);
+	SETFLOAT (ap+8, thetaZ);
+	SETFLOAT (ap+9, orientConfidence);
 
-	outlet_anything(m_dataout, gensym("joint"), 5, ap);
+	outlet_anything(m_dataout, gensym("joint"), 10, ap);
 }
 
 // OUTPUT IN OSC STYLE -> /joint/l_foot id x y z
@@ -1227,57 +1276,62 @@ if (m_osc_output)
 	SETFLOAT (ap+1, jointCoords[0]);
 	SETFLOAT (ap+2, jointCoords[1]);
 	SETFLOAT (ap+3, jointCoords[2]);
-	
+	SETFLOAT (ap+4, posConfidence);
+	SETFLOAT (ap+5, thetaX);
+	SETFLOAT (ap+6, thetaY);
+	SETFLOAT (ap+7, thetaZ);
+	SETFLOAT (ap+8, orientConfidence);
+		
 	switch(eJoint)
 	{
 		case 1:
-			outlet_anything(m_dataout, gensym("/skeleton/joint/head"), 4, ap); break;
+			outlet_anything(m_dataout, gensym("/skeleton/joint/head"), 9, ap); break;
 		case 2:
-				outlet_anything(m_dataout, gensym("/skeleton/joint/neck"), 4, ap); break;
+				outlet_anything(m_dataout, gensym("/skeleton/joint/neck"), 9, ap); break;
 		case 3:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/torso"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/torso"), 9, ap); break;
 		case 4:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/waist"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/waist"), 9, ap); break;
 		case 5:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_collar"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_collar"), 9, ap); break;
 		case 6:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_shoulder"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_shoulder"), 9, ap); break;
 		case 7:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_elbow"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_elbow"), 9, ap); break;
 		case 8:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_wrist"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_wrist"), 9, ap); break;
 		case 9:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hand"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hand"), 9, ap); break;
 		case 10:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_fingertip"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_fingertip"), 9, ap); break;
 		case 11:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_collar"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_collar"), 9, ap); break;
 		case 12:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_shoulder"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_shoulder"), 9, ap); break;
 		case 13:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_elbow"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_elbow"), 9, ap); break;
 		case 14:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_wrist"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_wrist"), 9, ap); break;
 		case 15:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hand"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hand"), 9, ap); break;
 		case 16:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_fingertip"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_fingertip"), 9, ap); break;
 		case 17:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hip"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hip"), 9, ap); break;
 		case 18:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_knee"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_knee"), 9, ap); break;
 		case 19:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_ankle"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_ankle"), 9, ap); break;
 		case 20:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_foot"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/l_foot"), 9, ap); break;
 		case 21:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hip"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hip"), 9, ap); break;
 		case 22:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_knee"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_knee"), 9, ap); break;
 		case 23:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_ankle"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_ankle"), 9, ap); break;
 		case 24:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_foot"), 4, ap); break;
+					outlet_anything(m_dataout, gensym("/skeleton/joint/r_foot"), 9, ap); break;
 	}
 }
 }
@@ -1693,21 +1747,23 @@ void pix_openni :: floatRegistrationMessCallback(void *data, t_floatarg value)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
 	int nRetVal = 0;
-	if ((int)value == 1)
+	if ((int)value == 1 && me->rgb_started && me->depth_started)
 	{
 		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 		{
 			nRetVal = g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
 		}
+		me->m_registration=true;
 		me->post("changed to registered depth mode. %s", xnGetStatusString(nRetVal));
 	}
 	
-	if ((int)value == 0)
+	if ((int)value == 0 && me->depth_started)
 	{
 		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 		{
 			nRetVal = g_depth.GetAlternativeViewPointCap().ResetViewPoint();
 		}
+		me->m_registration=false;
 		me->post("changed to unregistered depth mode. %s", xnGetStatusString(nRetVal));
 	}
 }

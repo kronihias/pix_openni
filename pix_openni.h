@@ -120,6 +120,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			bool usergen_wanted;
       bool hand_wanted;
 
+			bool m_registration;
 			bool m_usercoloring;
 
       bool destroy_thread; // shutdown...
