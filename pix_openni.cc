@@ -153,6 +153,7 @@ void XN_CALLBACK_TYPE lost_hand(xn::HandsGenerator &generator, XnUserID nId, XnF
 		outlet_anything(me->m_dataout, gensym("lost_hand"), 1, ap);
 	}
 }
+
 void XN_CALLBACK_TYPE update_hand(xn::HandsGenerator &generator, XnUserID nID, const XnPoint3D *pPosition, XnFloat fTime, void *pCookie) {
 	pix_openni *me = (pix_openni*)pCookie;
 	
@@ -185,7 +186,37 @@ void XN_CALLBACK_TYPE update_hand(xn::HandsGenerator &generator, XnUserID nID, c
 	}
 }
 
-// Sceleton Callbacks
+// Skeleton Callbacks
+// New Data from Usergenerator
+void XN_CALLBACK_TYPE UserGenerator_NewData(xn::ProductionNode& productionnote, void* pCookie)
+{
+	pix_openni *me = (pix_openni*)pCookie;
+	
+		// SCELETON OUTPUT
+		float jointCoords[3];
+		
+		XnSkeletonJointTransformation jointTrans;
+		
+		XnUserID aUsers[15];
+		XnUInt16 nUsers = 15;
+		g_UserGenerator.GetUsers(aUsers, nUsers);
+		
+		t_atom ap[4];
+		
+		
+		for (int i = 0; i < nUsers; ++i) {
+			if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
+				//g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(aUsers[i], XN_SKEL_LEFT_HAND, jointTrans);
+				
+				for(int j = 0; j <= 24; ++j)
+				{
+					me->outputJoint(aUsers[i], (XnSkeletonJoint) j);
+				}
+			}
+		}
+	//me->post("new data from usergen!");
+}
+
 // Callback: New user was detected
 void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, void* pCookie)
 {
@@ -671,8 +702,9 @@ void pix_openni :: render(GemState *state)
 				g_context.StartGeneratingAll();
 				
 				m_image.image.xsize = mapMode.nXRes;
-			  m_image.image.ysize = mapMode.nYRes;
-			  m_image.image.setCsizeByFormat(GL_RGBA);
+				m_image.image.ysize = mapMode.nYRes;
+				m_image.image.setCsizeByFormat(GL_RGB);
+				//m_image.image.csize=3;
 			  m_image.image.reallocate();
 			
 				post("OpenNI:: Image node created!");
@@ -688,39 +720,53 @@ void pix_openni :: render(GemState *state)
 		// OUTPUT RGB IMAGE
 		if (rgb_wanted && rgb_started)
 		{
-					g_image.GetMetaData(g_imageMD);
-					
-					//m_image.image.data= (unsigned char*)g_imageMD.RGB24Data();
-					if (((int)g_imageMD.XRes() != (int)m_image.image.xsize) || ((int)g_imageMD.YRes() != (int)m_image.image.ysize))
+			g_image.GetMetaData(g_imageMD);
+
+			if (g_imageMD.IsDataNew()) // new data??
+			{
+				if (((int)g_imageMD.XRes() != (int)m_image.image.xsize) || ((int)g_imageMD.YRes() != (int)m_image.image.ysize))
+				{
+					m_image.image.xsize = g_imageMD.XRes();
+					m_image.image.ysize = g_imageMD.YRes();
+					m_image.image.reallocate();
+				}
+
+				const XnUInt8* pImage = g_imageMD.Data();
+				
+				int size = m_image.image.xsize * m_image.image.ysize * m_image.image.csize;
+				int i=0;
+				
+/* slow conversion code...
+				while (i<=size-1-index_offset) {
+					int num=(i%4)+floor(i/4)*3;
+					if ((i % 4)==3)
 					{
-						m_image.image.xsize = g_imageMD.XRes();
-						m_image.image.ysize = g_imageMD.YRes();
-						m_image.image.reallocate();
+						m_image.image.data[i+index_offset]=255.0;
+					}  else  {
+						m_image.image.data[i+index_offset]=(unsigned char)pImage[num];
 					}
-					
-					const XnUInt8* pImage = g_imageMD.Data();
-					
-					int size = m_image.image.xsize * m_image.image.ysize * m_image.image.csize;
-							
-					int i=0;
-					
-					while (i<=size-1-index_offset) {
-						int num=(i%4)+floor(i/4)*3;
-						if ((i % 4)==3)
-							{
-									m_image.image.data[i+index_offset]=255.0;
-							}  else  {
-									m_image.image.data[i+index_offset]=(unsigned char)pImage[num];
-							}
-						i++;
-					}
-					
-					m_image.newimage = 1;
-					m_image.image.notowned = true;
-					m_image.image.upsidedown=true;
-					state->set(GemState::_PIX, &m_image);
+					i++;
+				}
+*/
+				unsigned char *pixels=m_image.image.data;
+				size = size-index_offset;
+				
+				pixels+=index_offset;
+				while (size--) {
+					*pixels=*pImage;
+					pImage++;
+					pixels++;
+				}
+				
+				m_image.newimage = 1;
+				m_image.image.notowned = true;
+				m_image.image.upsidedown=true;
+				state->set(GemState::_PIX, &m_image);
+			} else {
+				m_image.newimage = 0;
+				state->set(GemState::_PIX, &m_image);				
 			}
-			
+		}
 			
 			// SKELETON CODE IN RENDER METHOD!! -> PACK INTO THREAD!
 
@@ -789,9 +835,12 @@ void pix_openni :: render(GemState *state)
 						//post("Register to calibration in progress", rc);
 						//rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseInProgress(MyPoseInProgress, NULL, hPoseInProgress);
 						//post("Register to pose in progress", rc);
-
+				
+				// callback for new data
+				g_UserGenerator.RegisterToNewDataAvailable(UserGenerator_NewData, this, hUserGeneratorNewData);
+				
 				g_context.StartGeneratingAll();
-
+				
 				skeleton_started = true;
 			}
 			
@@ -801,6 +850,7 @@ void pix_openni :: render(GemState *state)
 				//g_UserGenerator.GetSkeletonCap().UnregisterFromCalibrationStart(hCalibrationStart);
 				//g_UserGenerator.GetSkeletonCap().UnregisterFromCalibrationComplete(hCalibrationComplete);
 				//g_UserGenerator.GetPoseDetectionCap().UnregisterFromPoseDetected(hPoseDetected);
+				g_UserGenerator.UnregisterFromNewDataAvailable(hUserGeneratorNewData);
 				skeleton_started = false;
 			}
 			
@@ -809,40 +859,12 @@ void pix_openni :: render(GemState *state)
 				g_UserGenerator.Release();
 				usergen_started = false;
 			}
-			
-			
-			if (skeleton_started)
-			{
-				// SCELETON OUTPUT
-				float jointCoords[3];
-				
-				XnSkeletonJointTransformation jointTrans;
-				
-				XnUserID aUsers[15];
-				XnUInt16 nUsers = 15;
-				g_UserGenerator.GetUsers(aUsers, nUsers);
-				
-				t_atom ap[4];
-				
-				
-				for (int i = 0; i < nUsers; ++i) {
-					if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
-						//g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(aUsers[i], XN_SKEL_LEFT_HAND, jointTrans);
-						
-						for(int j = 0; j <= 24; ++j)
-						{
-							outputJoint(aUsers[i], (XnSkeletonJoint) j);
-						}
-					}
-				}
-			}
-			
-		
+	
 		// HAND GESTURES
 			if (hand_wanted && !hand_started)
 			{
 				post("trying to start hand tracking...");
-				//XnCallbackHandle hHandsCallbacks, hGestureCallbacks;
+				
 				rc = g_HandsGenerator.Create(g_context);
 				if (rc != XN_STATUS_OK)
 				{
@@ -911,10 +933,10 @@ void pix_openni :: render(GemState *state)
 
 void pix_openni :: renderDepth(int argc, t_atom*argv)
 {
-  if (argc==2 && argv->a_type==A_POINTER && (argv+1)->a_type==A_POINTER) // is it gem_state?
-  {
+	if (argc==2 && argv->a_type==A_POINTER && (argv+1)->a_type==A_POINTER) // is it gem_state?
+	{
 		depth_state =  (GemState *) (argv+1)->a_w.w_gpointer;
-		
+
 		// start depth stream if wanted
 		if (depth_wanted && !depth_started)
 		{
@@ -933,7 +955,7 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					mapMode.nYRes = 480;
 					mapMode.nFPS = 30;
 					g_depth.SetMapOutputMode(mapMode);
-					
+
 					if (m_registration && rgb_started) // set registration if wanted
 					{
 						if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
@@ -944,61 +966,62 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					depth_started = true;
 					g_context.StartGeneratingAll();
 					post("OpenNI:: Depth node created!");
-					
+
 					m_depth.image.xsize = mapMode.nXRes;
-				  m_depth.image.ysize = mapMode.nYRes;
-				  m_depth.image.setCsizeByFormat(GL_RGBA);
-				  m_depth.image.reallocate();
+					m_depth.image.ysize = mapMode.nYRes;
+					m_depth.image.setCsizeByFormat(GL_RGBA);
+					m_depth.image.reallocate();
 				}
 			}
 		}
-		
+
 		if (!depth_wanted && depth_started)
 		{
 			//g_depth.Release();
 			depth_started = false;
 		}
-	
+
 		if (depth_wanted && depth_started) //DEPTH OUTPUT
 		{
-
-			// check if depth output request changed -> reallocate image_struct
-			if (req_depth_output != depth_output)
-			{
-			  if ((req_depth_output == 0) || (req_depth_output == 2))
-				{
-					m_depth.image.setCsizeByFormat(GL_RGBA);
-				}
-				if (req_depth_output == 1)
-				{
-					m_depth.image.setCsizeByFormat(GL_LUMINANCE);
-				}
-				if (req_depth_output == 3)
-				{
-					m_depth.image.setCsizeByFormat(GL_YCBCR_422_GEM);
-				}
-				m_depth.image.reallocate();
-				depth_output=req_depth_output;
-			}
-			
 			g_depth.GetMetaData(g_depthMD);
 			
-			const XnLabel* pLabels = NULL;
-			// user coloring -> get pixelmap with userid
-			if (usergen_started && m_usercoloring)
+			if (g_depthMD.IsDataNew()) // new data??
 			{
-				g_UserGenerator.GetUserPixels(0, g_sceneMD);
-			}
-			pLabels = g_sceneMD.Data();
-			
+				// check if depth output request changed -> reallocate image_struct
+				if (req_depth_output != depth_output)
+				{
+					if ((req_depth_output == 0) || (req_depth_output == 2))
+					{
+						m_depth.image.setCsizeByFormat(GL_RGBA);
+					}
+					if (req_depth_output == 1)
+					{
+						m_depth.image.setCsizeByFormat(GL_LUMINANCE);
+					}
+					if (req_depth_output == 3)
+					{
+						m_depth.image.setCsizeByFormat(GL_YCBCR_422_GEM);
+					}
+					m_depth.image.reallocate();
+					depth_output=req_depth_output;
+				}
+
+				const XnLabel* pLabels = NULL;
+			// user coloring -> get pixelmap with userid
+				if (usergen_started && m_usercoloring)
+				{
+					g_UserGenerator.GetUserPixels(0, g_sceneMD);
+				}
+				pLabels = g_sceneMD.Data();
+
 			//const XnDepthPixel* pDepth = g_depthMD.Data();
-			const XnDepthPixel* pDepth = g_depth.GetDepthMap(); 
-			
+				const XnDepthPixel* pDepth = g_depth.GetDepthMap(); 
+
 				if (depth_output == 0) // RGBA mapped
 				{
 					uint8_t *pixels = m_depth.image.data;
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
-					
+
 					for( unsigned int i = 0 ; i < 640*480 ; i++) {
 						// user labeling
 						XnLabel label = 0;
@@ -1011,57 +1034,57 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 						{
 							nColorID = nColors;
 						}
-						
+
 						int pval = t_gamma[depth_pixel[i]];
 						int lb = pval & 0xff;
 						int form_mult = 4; // Changed for RGBA (4 instead of originally 3)
 						switch (pval>>8) {
-						case 0:																					
+							case 0:																					
 							pixels[form_mult*i+0+index_offset] = 255 * Colors[nColorID][0];
 							pixels[form_mult*i+1+index_offset] = (255-lb) * Colors[nColorID][1];
 							pixels[form_mult*i+2+index_offset] = (255-lb) * Colors[nColorID][2];
 							break;
-						case 1:
+							case 1:
 							pixels[form_mult*i+0+index_offset] = 255 * Colors[nColorID][0];
 							pixels[form_mult*i+1+index_offset] = lb * Colors[nColorID][1];
 							pixels[form_mult*i+2+index_offset] = 0;
 							break;
-						case 2:
+							case 2:
 							pixels[form_mult*i+0+index_offset] = (255-lb) * Colors[nColorID][0];
 							pixels[form_mult*i+1+index_offset] = 255 * Colors[nColorID][1];
 							pixels[form_mult*i+2+index_offset] = 0;
 							break;
-						case 3:
+							case 3:
 							pixels[form_mult*i+0+index_offset] = 0;
 							pixels[form_mult*i+1+index_offset] = 255 * Colors[nColorID][1];
 							pixels[form_mult*i+2+index_offset] = lb * Colors[nColorID][2];
 							break;
-						case 4:
+							case 4:
 							pixels[form_mult*i+0+index_offset] = 0;
 							pixels[form_mult*i+1+index_offset] = (255-lb) * Colors[nColorID][1];
 							pixels[form_mult*i+2+index_offset] = 255 * Colors[nColorID][2];
 							break;
-						case 5:
+							case 5:
 							pixels[form_mult*i+0+index_offset] = 0 * Colors[nColorID][0];
 							pixels[form_mult*i+1+index_offset] = 0;
 							pixels[form_mult*i+2+index_offset] = (255-lb) * Colors[nColorID][2];
 							break;
-						default:
+							default:
 							pixels[form_mult*i+0+index_offset] = 0;
 							pixels[form_mult*i+1+index_offset] = 0;
 							pixels[form_mult*i+2+index_offset] = 0;
 							break;
 						}
-					pLabels++;
+						pLabels++;
 					}
 				}
-				
+
 				if (depth_output == 1) // GREYSCALE
 				{
 					uint8_t *pixels = m_depth.image.data;
-		
+
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
-					
+
 					for(int y = 0; y < 640*480; y++) {
 						// user coloring
 						XnLabel label = 0;
@@ -1083,9 +1106,9 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 				if (depth_output == 2) // RAW RGBA -> R 8 MSB, G 8 LSB of 16 bit depth value, B->userid if usergen 1 and usercoloring 1
 				{
 					uint8_t *pixels = m_depth.image.data;
-		
+
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
-					  
+
 					for(int y = 0; y < 640*480 - index_offset; y++) {
 						pixels[4*y+index_offset]=(uint8_t)(depth_pixel[y] >> 8);
 						pixels[4*y+1+index_offset]=(uint8_t)(depth_pixel[y] & 0xff);
@@ -1097,11 +1120,34 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 						}
 						pixels[4*y+2+index_offset]=label; // set user id to b channel
 						pixels[4*y+3+index_offset]=255; // set alpha
-						
+
 						pLabels++;
 					}
+
+/* attempt to make conversion faster...?
+									int size = m_depth.image.xsize * m_depth.image.ysize * m_depth.image.csize;
+									size = size-index_offset;
+									pixels+=index_offset;
+									
+									while (size--) {
+										pixels[0]=(uint8_t)(*depth_pixel >> 8);
+										pixels[1]=(uint8_t)(*depth_pixel & 0xff);
+										// user coloring
+										XnLabel label = 0;
+										if (usergen_started && m_usercoloring)
+										{
+											label = *pLabels;
+										}
+										pixels[2]=label;
+										pixels[3]=255;
+										
+										depth_pixel++;
+										pixels+=4;
+									}
+*/
+
 				}
-				
+
 				if (depth_output == 3) // RAW YUV -> 16 bit Depth
 				{
 					const XnDepthPixel* pDepth = g_depthMD.Data();
@@ -1111,15 +1157,20 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 				m_depth.newimage = 1;
 				m_depth.image.notowned = true;
 				m_depth.image.upsidedown=true;
-				depth_state->set(GemState::_PIX, &m_depth);
-				//got_depth=0;
-				
-				t_atom ap[2];
-				ap->a_type=A_POINTER;
-				ap->a_w.w_gpointer=(t_gpointer *)m_cache;  // the cache ?
-				(ap+1)->a_type=A_POINTER;
-				(ap+1)->a_w.w_gpointer=(t_gpointer *)depth_state;
-				outlet_anything(m_depthoutlet, gensym("gem_state"), 2, ap);
+			
+			} else { // no new depthmap from openni
+					m_depth.newimage = 0;
+			}
+
+			depth_state->set(GemState::_PIX, &m_depth);
+
+			t_atom ap[2];
+			ap->a_type=A_POINTER;
+			ap->a_w.w_gpointer=(t_gpointer *)m_cache;  // the cache ?
+			(ap+1)->a_type=A_POINTER;
+			(ap+1)->a_w.w_gpointer=(t_gpointer *)depth_state;
+			outlet_anything(m_depthoutlet, gensym("gem_state"), 2, ap);
+
 		}
 	}
 }

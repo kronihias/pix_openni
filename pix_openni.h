@@ -66,7 +66,9 @@ class GEM_EXTERN pix_openni : public GemBase
     	pix_openni(int argc, t_atom *argv);
     	
     	t_outlet 	*m_dataout;
-
+			
+			void 				outputJoint (XnUserID player, XnSkeletonJoint eJoint);
+			
 			bool m_osc_output;
 			bool m_real_world_coords;
 			
@@ -90,7 +92,7 @@ class GEM_EXTERN pix_openni : public GemBase
     	
 	//////////
     	// Settings/Info
-    	void 				outputJoint (XnUserID player, XnSkeletonJoint eJoint);
+    	//void 				outputJoint (XnUserID player, XnSkeletonJoint eJoint);
     	void				VideoModeMess(int argc, t_atom*argv);
 			void				DepthModeMess(int argc, t_atom*argv);
     	void	    	bangMess();
@@ -135,8 +137,8 @@ class GEM_EXTERN pix_openni : public GemBase
 			int 		m_width;
 			int			m_height;
 			
-			XnCallbackHandle hUserCallbacks, hCalibrationStartCallback, hCalibrationCompleteCallback, hPoseCallbacks, hUserExitCallback, hUserReEnterCallback, hHandsCallbacks, hGestureCallbacks;
-			XnCallbackHandle hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress;
+			XnCallbackHandle hUserCallbacks, hHandsCallbacks, hGestureCallbacks; // Hands
+			XnCallbackHandle hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress, hUserGeneratorNewData; // Skeleton
 			
 			XnChar strRequiredCalibrationPose[XN_MAX_NAME_LENGTH];
 	
