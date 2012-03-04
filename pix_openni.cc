@@ -733,10 +733,10 @@ void pix_openni :: render(GemState *state)
 
 				const XnUInt8* pImage = g_imageMD.Data();
 				
-				int size = m_image.image.xsize * m_image.image.ysize * m_image.image.csize;
 				int i=0;
 				
 /* slow conversion code...
+				int size = m_image.image.xsize * m_image.image.ysize * m_image.image.csize;
 				while (i<=size-1-index_offset) {
 					int num=(i%4)+floor(i/4)*3;
 					if ((i % 4)==3)
@@ -748,14 +748,22 @@ void pix_openni :: render(GemState *state)
 					i++;
 				}
 */
+				int size = m_image.image.xsize * m_image.image.ysize;
 				unsigned char *pixels=m_image.image.data;
-				size = size-index_offset;
-				
-				pixels+=index_offset;
+
 				while (size--) {
 					*pixels=*pImage;
-					pImage++;
-					pixels++;
+					#ifdef __APPLE__
+						pixels[0]=pImage[2];
+						pixels[1]=pImage[1];
+						pixels[2]=pImage[0];
+					#else
+						pixels[0]=pImage[0];
+						pixels[1]=pImage[1];
+						pixels[2]=pImage[2];
+					#endif
+					pImage+=3;
+					pixels+=3;
 				}
 				
 				m_image.newimage = 1;
