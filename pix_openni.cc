@@ -191,22 +191,13 @@ void XN_CALLBACK_TYPE update_hand(xn::HandsGenerator &generator, XnUserID nID, c
 void XN_CALLBACK_TYPE UserGenerator_NewData(xn::ProductionNode& productionnote, void* pCookie)
 {
 	pix_openni *me = (pix_openni*)pCookie;
-	
-		// SCELETON OUTPUT
-		float jointCoords[3];
-		
-		XnSkeletonJointTransformation jointTrans;
 		
 		XnUserID aUsers[15];
 		XnUInt16 nUsers = 15;
 		g_UserGenerator.GetUsers(aUsers, nUsers);
 		
-		t_atom ap[4];
-		
-		
 		for (int i = 0; i < nUsers; ++i) {
 			if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
-				//g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(aUsers[i], XN_SKEL_LEFT_HAND, jointTrans);
 				
 				for(int j = 0; j <= 24; ++j)
 				{
@@ -420,6 +411,8 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	hand_wanted = false;
 	hand_started= false; 
 	m_registration=false;
+	m_registration_wanted=false;
+	m_output_euler=false;
 	
 	openni_ready = false;
 	destroy_thread = false;
@@ -433,6 +426,8 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	
 	depth_output = 0;
 	req_depth_output = 0;
+	
+	m_skeleton_smoothing=0.5;
 	
 	// CHECK FOR ARGS AND ACTIVATE STREAMS
 	if (argc >= 1)
@@ -734,23 +729,12 @@ void pix_openni :: render(GemState *state)
 				const XnUInt8* pImage = g_imageMD.Data();
 				
 				int i=0;
-				
-/* slow conversion code...
-				int size = m_image.image.xsize * m_image.image.ysize * m_image.image.csize;
-				while (i<=size-1-index_offset) {
-					int num=(i%4)+floor(i/4)*3;
-					if ((i % 4)==3)
-					{
-						m_image.image.data[i+index_offset]=255.0;
-					}  else  {
-						m_image.image.data[i+index_offset]=(unsigned char)pImage[num];
-					}
-					i++;
-				}
-*/
+
 				int size = m_image.image.xsize * m_image.image.ysize;
 				unsigned char *pixels=m_image.image.data;
-
+				
+				m_image.image.fromRGB(g_imageMD.Data()); // use gem internal method to convert colorspace
+				/*
 				while (size--) {
 					*pixels=*pImage;
 					#ifdef __APPLE__
@@ -765,7 +749,7 @@ void pix_openni :: render(GemState *state)
 					pImage+=3;
 					pixels+=3;
 				}
-				
+				*/
 				m_image.newimage = 1;
 				m_image.image.notowned = true;
 				m_image.image.upsidedown=true;
@@ -827,13 +811,16 @@ void pix_openni :: render(GemState *state)
 				if (g_UserGenerator.GetSkeletonCap().NeedPoseForCalibration())
 				{
 					g_bNeedPose = TRUE;
+					post("OpenNI:: Pose required");
 					if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
 					{
-						post("OpenNI:: Pose required, but not supported\n");
+						post("OpenNI:: Pose required, but not supported");
 					}
 					rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, this, hPoseDetected);
 					post("OpenNI:: Register to Pose Detected", rc);
 					g_UserGenerator.GetSkeletonCap().GetCalibrationPose(g_strPose);
+				} else {
+					post("OpenNI:: No Pose required!");
 				}
 
 				g_UserGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
@@ -844,6 +831,8 @@ void pix_openni :: render(GemState *state)
 						//rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseInProgress(MyPoseInProgress, NULL, hPoseInProgress);
 						//post("Register to pose in progress", rc);
 				
+				//set smoothing
+				g_UserGenerator.GetSkeletonCap().SetSmoothing(m_skeleton_smoothing);
 				// callback for new data
 				g_UserGenerator.RegisterToNewDataAvailable(UserGenerator_NewData, this, hUserGeneratorNewData);
 				
@@ -963,14 +952,6 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					mapMode.nYRes = 480;
 					mapMode.nFPS = 30;
 					g_depth.SetMapOutputMode(mapMode);
-
-					if (m_registration && rgb_started) // set registration if wanted
-					{
-						if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
-						{
-							g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
-						}
-					}
 					depth_started = true;
 					g_context.StartGeneratingAll();
 					post("OpenNI:: Depth node created!");
@@ -988,7 +969,16 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 			//g_depth.Release();
 			depth_started = false;
 		}
-
+		
+		if (m_registration_wanted && rgb_started && depth_started && !m_registration) // set registration if wanted
+		{
+			if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+			{
+				g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
+				m_registration=true;
+			}
+		}
+		
 		if (depth_wanted && depth_started) //DEPTH OUTPUT
 		{
 			g_depth.GetMetaData(g_depthMD);
@@ -1215,11 +1205,9 @@ void pix_openni :: outputJoint (XnUserID player, XnSkeletonJoint eJoint)
 	XnSkeletonJointTransformation jointTrans;
 
 	g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(player, eJoint, jointTrans);
-	//float posConfidence;
-	//float orientConfidence;
-	
+
 	float posConfidence = jointTrans.position.fConfidence; // how reliable is the data?
-	float orientConfidence = jointTrans.orientation.fConfidence; // how reliable is the data?
+	float orientConfidence; // how reliable is the data?
 
 	if (m_real_world_coords)
 	{
@@ -1231,168 +1219,184 @@ void pix_openni :: outputJoint (XnUserID player, XnSkeletonJoint eJoint)
 		jointCoords[1] = off_y + (mult_y * (960 - jointTrans.position.position.Y) / 1920); //Normalize coords to 0..1 interval
 		jointCoords[2] = off_z + (mult_z * jointTrans.position.position.Z * 7.8125 / 10000); //Normalize coords to 0..7.8125 interval
 	}
-	
+
 	//compute orientation in euler angles from rotation matrix - maybe not correct
 	// http://groups.google.com/group/openni-dev/browse_thread/thread/ccb8e62acd17b95b
-	float thetaX;
-	float thetaY;
-	float thetaZ;
-	
-	if (jointTrans.orientation.orientation.elements[6] < 1.0) // Z1
+	float thetaX=0.;
+	float thetaY=0.;
+	float thetaZ=0.;
+
+	if (m_output_euler)
 	{
-	    if (jointTrans.orientation.orientation.elements[6] > -1.0) // Z1
-	    {
-	        thetaY = asin(jointTrans.orientation.orientation.elements[6]); // Z1
-	        thetaX = atan2(-jointTrans.orientation.orientation.elements[7],jointTrans.orientation.orientation.elements[7]); // Z2, Z2
-	        thetaZ = atan2(-jointTrans.orientation.orientation.elements[3],jointTrans.orientation.orientation.elements[1]); // Y1, X1
-	    }
-	    else // Z1 = -1
-	    {
-	        // Not a unique solution: thetaZ - thetaX = atan2(X2,Y2)
-	        thetaY = -PI_H;
-	        thetaX = -atan2(jointTrans.orientation.orientation.elements[1],jointTrans.orientation.orientation.elements[4]); // X2, Y2
-	        thetaZ = 0;
-	    }
-	} else { // Z1 = +1 
-	    // Not a unique solution: thetaZ + thetaX = atan2(X2,Y2)
-	    thetaY = +PI_H;
-	    thetaX = atan2(jointTrans.orientation.orientation.elements[1],jointTrans.orientation.orientation.elements[4]); // X2, Y2
-	    thetaZ = 0;
-	}
-	
-	
-	if (!m_osc_output)
-	{
-		switch(eJoint)
+		orientConfidence = jointTrans.orientation.fConfidence; // how reliable is the data?
+		if (jointTrans.orientation.orientation.elements[6] < 1.0) // Z1
 		{
-			case 1:
-			SETSYMBOL (ap+0, gensym("head")); break;
-			case 2:
-			SETSYMBOL (ap+0, gensym("neck")); break;
-			case 3:
-			SETSYMBOL (ap+0, gensym("torso")); break;
-			case 4:
-			SETSYMBOL (ap+0, gensym("waist")); break;
-		case 5:
-			SETSYMBOL (ap+0, gensym("l_collar")); break;
-		case 6:
-			SETSYMBOL (ap+0, gensym("l_shoulder")); break;
-		case 7:
-			SETSYMBOL (ap+0, gensym("l_elbow")); break;
-		case 8:
-			SETSYMBOL (ap+0, gensym("l_wrist")); break;
-		case 9:
-			SETSYMBOL (ap+0, gensym("l_hand")); break;
-		case 10:
-			SETSYMBOL (ap+0, gensym("l_fingertip")); break;
-		case 11:
-			SETSYMBOL (ap+0, gensym("r_collar")); break;
-		case 12:
-			SETSYMBOL (ap+0, gensym("r_shoulder")); break;
-		case 13:
-			SETSYMBOL (ap+0, gensym("r_elbow")); break;
-		case 14:
-			SETSYMBOL (ap+0, gensym("r_wrist")); break;
-		case 15:
-			SETSYMBOL (ap+0, gensym("r_hand")); break;
-		case 16:
-			SETSYMBOL (ap+0, gensym("r_fingertip")); break;
-		case 17:
-			SETSYMBOL (ap+0, gensym("l_hip")); break;
-		case 18:
-			SETSYMBOL (ap+0, gensym("l_knee")); break;
-		case 19:
-			SETSYMBOL (ap+0, gensym("l_ankle")); break;
-		case 20:
-			SETSYMBOL (ap+0, gensym("l_foot")); break;
-		case 21:
-			SETSYMBOL (ap+0, gensym("r_hip")); break;
-		case 22:
-			SETSYMBOL (ap+0, gensym("r_knee")); break;
-		case 23:
-			SETSYMBOL (ap+0, gensym("r_ankle")); break;
-		case 24:
-			SETSYMBOL (ap+0, gensym("r_foot"));	break;
+			if (jointTrans.orientation.orientation.elements[6] > -1.0) // Z1
+			{
+				thetaY = asin(jointTrans.orientation.orientation.elements[6]); // Z1
+				thetaX = atan2(-jointTrans.orientation.orientation.elements[7],jointTrans.orientation.orientation.elements[7]); // Z2, Z2
+				thetaZ = atan2(-jointTrans.orientation.orientation.elements[3],jointTrans.orientation.orientation.elements[1]); // Y1, X1
+			}
+			else // Z1 = -1
+			{
+					// Not a unique solution: thetaZ - thetaX = atan2(X2,Y2)
+				thetaY = -PI_H;
+				thetaX = -atan2(jointTrans.orientation.orientation.elements[1],jointTrans.orientation.orientation.elements[4]); // X2, Y2
+				thetaZ = 0;
+			}
+		} else { // Z1 = +1 
+			// Not a unique solution: thetaZ + thetaX = atan2(X2,Y2)
+			thetaY = +PI_H;
+		thetaX = atan2(jointTrans.orientation.orientation.elements[1],jointTrans.orientation.orientation.elements[4]); // X2, Y2
+		thetaZ = 0;
 	}
-	
+}
+
+if (!m_osc_output)
+{
+	switch(eJoint)
+	{
+		case 1:
+		SETSYMBOL (ap+0, gensym("head")); break;
+		case 2:
+		SETSYMBOL (ap+0, gensym("neck")); break;
+		case 3:
+		SETSYMBOL (ap+0, gensym("torso")); break;
+		case 4:
+		SETSYMBOL (ap+0, gensym("waist")); break;
+		case 5:
+		SETSYMBOL (ap+0, gensym("l_collar")); break;
+		case 6:
+		SETSYMBOL (ap+0, gensym("l_shoulder")); break;
+		case 7:
+		SETSYMBOL (ap+0, gensym("l_elbow")); break;
+		case 8:
+		SETSYMBOL (ap+0, gensym("l_wrist")); break;
+		case 9:
+		SETSYMBOL (ap+0, gensym("l_hand")); break;
+		case 10:
+		SETSYMBOL (ap+0, gensym("l_fingertip")); break;
+		case 11:
+		SETSYMBOL (ap+0, gensym("r_collar")); break;
+		case 12:
+		SETSYMBOL (ap+0, gensym("r_shoulder")); break;
+		case 13:
+		SETSYMBOL (ap+0, gensym("r_elbow")); break;
+		case 14:
+		SETSYMBOL (ap+0, gensym("r_wrist")); break;
+		case 15:
+		SETSYMBOL (ap+0, gensym("r_hand")); break;
+		case 16:
+		SETSYMBOL (ap+0, gensym("r_fingertip")); break;
+		case 17:
+		SETSYMBOL (ap+0, gensym("l_hip")); break;
+		case 18:
+		SETSYMBOL (ap+0, gensym("l_knee")); break;
+		case 19:
+		SETSYMBOL (ap+0, gensym("l_ankle")); break;
+		case 20:
+		SETSYMBOL (ap+0, gensym("l_foot")); break;
+		case 21:
+		SETSYMBOL (ap+0, gensym("r_hip")); break;
+		case 22:
+		SETSYMBOL (ap+0, gensym("r_knee")); break;
+		case 23:
+		SETSYMBOL (ap+0, gensym("r_ankle")); break;
+		case 24:
+		SETSYMBOL (ap+0, gensym("r_foot"));	break;
+	}
+
 	SETFLOAT (ap+1, (int)player);
 	SETFLOAT (ap+2, jointCoords[0]);
 	SETFLOAT (ap+3, jointCoords[1]);
 	SETFLOAT (ap+4, jointCoords[2]);
 	SETFLOAT (ap+5, posConfidence);
-	SETFLOAT (ap+6, thetaX);
-	SETFLOAT (ap+7, thetaY);
-	SETFLOAT (ap+8, thetaZ);
-	SETFLOAT (ap+9, orientConfidence);
 
-	outlet_anything(m_dataout, gensym("joint"), 10, ap);
-}
+	if (m_output_euler)
+	{
+		SETFLOAT (ap+6, thetaX);
+		SETFLOAT (ap+7, thetaY);
+		SETFLOAT (ap+8, thetaZ);
+		SETFLOAT (ap+9, orientConfidence);
+
+		outlet_anything(m_dataout, gensym("joint"), 10, ap);
+		} else
+		{
+			outlet_anything(m_dataout, gensym("joint"), 6, ap);
+		}
+
+	}
 
 // OUTPUT IN OSC STYLE -> /joint/l_foot id x y z
-if (m_osc_output)
-{
-	SETFLOAT (ap+0, (int)player);
-	SETFLOAT (ap+1, jointCoords[0]);
-	SETFLOAT (ap+2, jointCoords[1]);
-	SETFLOAT (ap+3, jointCoords[2]);
-	SETFLOAT (ap+4, posConfidence);
-	SETFLOAT (ap+5, thetaX);
-	SETFLOAT (ap+6, thetaY);
-	SETFLOAT (ap+7, thetaZ);
-	SETFLOAT (ap+8, orientConfidence);
-		
-	switch(eJoint)
+	if (m_osc_output)
 	{
-		case 1:
-			outlet_anything(m_dataout, gensym("/skeleton/joint/head"), 9, ap); break;
-		case 2:
-				outlet_anything(m_dataout, gensym("/skeleton/joint/neck"), 9, ap); break;
-		case 3:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/torso"), 9, ap); break;
-		case 4:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/waist"), 9, ap); break;
-		case 5:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_collar"), 9, ap); break;
-		case 6:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_shoulder"), 9, ap); break;
-		case 7:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_elbow"), 9, ap); break;
-		case 8:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_wrist"), 9, ap); break;
-		case 9:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hand"), 9, ap); break;
-		case 10:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_fingertip"), 9, ap); break;
-		case 11:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_collar"), 9, ap); break;
-		case 12:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_shoulder"), 9, ap); break;
-		case 13:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_elbow"), 9, ap); break;
-		case 14:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_wrist"), 9, ap); break;
-		case 15:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hand"), 9, ap); break;
-		case 16:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_fingertip"), 9, ap); break;
-		case 17:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_hip"), 9, ap); break;
-		case 18:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_knee"), 9, ap); break;
-		case 19:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_ankle"), 9, ap); break;
-		case 20:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/l_foot"), 9, ap); break;
-		case 21:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_hip"), 9, ap); break;
-		case 22:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_knee"), 9, ap); break;
-		case 23:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_ankle"), 9, ap); break;
-		case 24:
-					outlet_anything(m_dataout, gensym("/skeleton/joint/r_foot"), 9, ap); break;
+		int numargs=5;
+		SETFLOAT (ap+0, (int)player);
+		SETFLOAT (ap+1, jointCoords[0]);
+		SETFLOAT (ap+2, jointCoords[1]);
+		SETFLOAT (ap+3, jointCoords[2]);
+		SETFLOAT (ap+4, posConfidence);
+		if (m_output_euler)
+		{
+			SETFLOAT (ap+5, thetaX);
+			SETFLOAT (ap+6, thetaY);
+			SETFLOAT (ap+7, thetaZ);
+			SETFLOAT (ap+8, orientConfidence);
+			numargs=9;
+		}
+
+		switch(eJoint)
+		{
+			case 1:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/head"), numargs, ap); break;
+			case 2:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/neck"), numargs, ap); break;
+			case 3:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/torso"), numargs, ap); break;
+			case 4:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/waist"), numargs, ap); break;
+			case 5:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_collar"), numargs, ap); break;
+			case 6:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_shoulder"), numargs, ap); break;
+			case 7:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_elbow"), numargs, ap); break;
+			case 8:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_wrist"), numargs, ap); break;
+			case 9:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_hand"), numargs, ap); break;
+			case 10:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_fingertip"), numargs, ap); break;
+			case 11:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_collar"), numargs, ap); break;
+			case 12:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_shoulder"), numargs, ap); break;
+			case 13:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_elbow"), numargs, ap); break;
+			case 14:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_wrist"), numargs, ap); break;
+			case 15:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_hand"), numargs, ap); break;
+			case 16:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_fingertip"), numargs, ap); break;
+			case 17:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_hip"), numargs, ap); break;
+			case 18:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_knee"), numargs, ap); break;
+			case 19:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_ankle"), numargs, ap); break;
+			case 20:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/l_foot"), numargs, ap); break;
+			case 21:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_hip"), numargs, ap); break;
+			case 22:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_knee"), numargs, ap); break;
+			case 23:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_ankle"), numargs, ap); break;
+			case 24:
+			outlet_anything(m_dataout, gensym("/skeleton/joint/r_foot"), numargs, ap); break;
+		}
 	}
-}
 }
 
 //////////////////////////////////////////
@@ -1527,10 +1531,16 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
   		  gensym("depth_output"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatRegistrationMessCallback,
 	  	  gensym("registration"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatRgbRegistrationMessCallback,
+	  	  gensym("rgb_registration"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatRealWorldCoordsMessCallback,
 	  	  gensym("real_world_coords"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatOscOutputMessCallback,
 	  	  gensym("osc_style_output"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatSkeletonSmoothingMessCallback,
+	  	  gensym("skeleton_smoothing"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatEulerOutputMessCallback,
+	  	  gensym("euler_output"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::StopUserMessCallback,
 	  	  gensym("stop_user"), A_GIMME, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::StartUserMessCallback,
@@ -1813,6 +1823,7 @@ void pix_openni :: floatRegistrationMessCallback(void *data, t_floatarg value)
 			nRetVal = g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
 		}
 		me->m_registration=true;
+		me->m_registration_wanted=true;
 		me->post("changed to registered depth mode. %s", xnGetStatusString(nRetVal));
 	}
 	
@@ -1823,7 +1834,33 @@ void pix_openni :: floatRegistrationMessCallback(void *data, t_floatarg value)
 			nRetVal = g_depth.GetAlternativeViewPointCap().ResetViewPoint();
 		}
 		me->m_registration=false;
+		me->m_registration_wanted=false;
 		me->post("changed to unregistered depth mode. %s", xnGetStatusString(nRetVal));
+	}
+}
+
+void pix_openni :: floatRgbRegistrationMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+	int nRetVal = 0;
+	if ((int)value == 1 && me->rgb_started && me->depth_started)
+	{
+		if (g_image.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		{
+			nRetVal = g_image.GetAlternativeViewPointCap().SetViewPoint(g_depth);
+		}
+		me->m_registration=true;
+		me->post("not working now - changed to registered rgb mode. %s", xnGetStatusString(nRetVal));
+	}
+	
+	if ((int)value == 0 && me->depth_started)
+	{
+		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		{
+			nRetVal = g_image.GetAlternativeViewPointCap().ResetViewPoint();
+		}
+		me->m_registration=false;
+		me->post("not working now - changed to unregistered rgb mode. %s", xnGetStatusString(nRetVal));
 	}
 }
 
@@ -1834,6 +1871,24 @@ void pix_openni :: floatOscOutputMessCallback(void *data, t_floatarg osc_output)
 		me->m_osc_output=false;
   if ((int)osc_output == 1)
 		me->m_osc_output=true;
+}
+
+void pix_openni :: floatSkeletonSmoothingMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((value >= 0.0) && (value <= 1.0))
+	{
+		g_UserGenerator.GetSkeletonCap().SetSmoothing(value);
+		me->m_skeleton_smoothing=value;
+	}
+}
+void pix_openni :: floatEulerOutputMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((int)value == 0)
+		me->m_output_euler=false;
+  if ((int)value == 1)
+		me->m_output_euler=true;
 }
 
 void pix_openni :: floatRgbMessCallback(void *data, t_floatarg rgb)

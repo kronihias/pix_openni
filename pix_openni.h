@@ -71,7 +71,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			
 			bool m_osc_output;
 			bool m_real_world_coords;
-			
+			bool m_output_euler;
 			bool m_auto_calibration;
 			
     protected:
@@ -121,10 +121,13 @@ class GEM_EXTERN pix_openni : public GemBase
       bool skeleton_wanted;
 			bool usergen_wanted;
       bool hand_wanted;
-
+			
+			bool m_registration_wanted;
 			bool m_registration;
 			bool m_usercoloring;
 
+			float m_skeleton_smoothing;
+			
       bool destroy_thread; // shutdown...
       
 			int	depth_output;
@@ -173,7 +176,10 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void    	floatRecordMessCallback(void *data, float value);
 			static void    	floatRealWorldCoordsMessCallback(void *data, float value);
 			static void    	floatRegistrationMessCallback(void *data, float value);
+			static void    	floatRgbRegistrationMessCallback(void *data, float value);
 			static void    	floatOscOutputMessCallback(void *data, float osc_output);
+			static void    	floatSkeletonSmoothingMessCallback(void *data, float value);
+			static void    	floatEulerOutputMessCallback(void *data, float value);
 			static void    	StartUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
 			static void    	StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
 			static void    	floatAutoCalibrationMessCallback(void *data, float value);
