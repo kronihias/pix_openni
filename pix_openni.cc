@@ -698,7 +698,7 @@ void pix_openni :: render(GemState *state)
 				
 				m_image.image.xsize = mapMode.nXRes;
 				m_image.image.ysize = mapMode.nYRes;
-				m_image.image.setCsizeByFormat(GL_RGB);
+				m_image.image.setCsizeByFormat(GL_RGBA);
 				//m_image.image.csize=3;
 			  m_image.image.reallocate();
 			
@@ -726,30 +726,21 @@ void pix_openni :: render(GemState *state)
 					m_image.image.reallocate();
 				}
 
-				const XnUInt8* pImage = g_imageMD.Data();
-				
-				int i=0;
+				// m_image.image.fromRGB(g_imageMD.Data()); // use gem internal method to convert colorspace
 
+				const XnUInt8* pImage = g_imageMD.Data();
 				int size = m_image.image.xsize * m_image.image.ysize;
 				unsigned char *pixels=m_image.image.data;
-				
-				m_image.image.fromRGB(g_imageMD.Data()); // use gem internal method to convert colorspace
-				/*
 				while (size--) {
 					*pixels=*pImage;
-					#ifdef __APPLE__
-						pixels[0]=pImage[2];
-						pixels[1]=pImage[1];
-						pixels[2]=pImage[0];
-					#else
-						pixels[0]=pImage[0];
-						pixels[1]=pImage[1];
-						pixels[2]=pImage[2];
-					#endif
+					pixels[chRed]=pImage[0];
+					pixels[chGreen]=pImage[1];
+					pixels[chBlue]=pImage[2];
+					pixels[chAlpha]=255;
 					pImage+=3;
-					pixels+=3;
+					pixels+=4;
 				}
-				*/
+
 				m_image.newimage = 1;
 				m_image.image.notowned = true;
 				m_image.image.upsidedown=true;
