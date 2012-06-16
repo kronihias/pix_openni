@@ -753,7 +753,7 @@ void pix_openni :: render(GemState *state)
 			
 			// SKELETON CODE IN RENDER METHOD!! -> PACK INTO THREAD!
 
-			if ((usergen_wanted && !usergen_started) || (skeleton_wanted && !usergen_started))
+			if (((usergen_wanted && !usergen_started) || (skeleton_wanted && !usergen_started)) && depth_started)
 			{
 				post("OpenNI:: trying to start usergenerator...");
 
@@ -1297,18 +1297,18 @@ if (!m_osc_output)
 		SETSYMBOL (ap+0, gensym("r_foot"));	break;
 	}
 
-	SETFLOAT (ap+1, (int)player);
-	SETFLOAT (ap+2, jointCoords[0]);
-	SETFLOAT (ap+3, jointCoords[1]);
-	SETFLOAT (ap+4, jointCoords[2]);
-	SETFLOAT (ap+5, posConfidence);
+	SETFLOAT (ap+1, (t_float)player);
+	SETFLOAT (ap+2, (t_float)jointCoords[0]);
+	SETFLOAT (ap+3, (t_float)jointCoords[1]);
+	SETFLOAT (ap+4, (t_float)jointCoords[2]);
+	SETFLOAT (ap+5, (t_float)posConfidence);
 
 	if (m_output_euler)
 	{
-		SETFLOAT (ap+6, thetaX);
-		SETFLOAT (ap+7, thetaY);
-		SETFLOAT (ap+8, thetaZ);
-		SETFLOAT (ap+9, orientConfidence);
+		SETFLOAT (ap+6, (t_float)thetaX);
+		SETFLOAT (ap+7, (t_float)thetaY);
+		SETFLOAT (ap+8, (t_float)thetaZ);
+		SETFLOAT (ap+9, (t_float)orientConfidence);
 
 		outlet_anything(m_dataout, gensym("joint"), 10, ap);
 		} else
@@ -1322,17 +1322,17 @@ if (!m_osc_output)
 	if (m_osc_output)
 	{
 		int numargs=5;
-		SETFLOAT (ap+0, (int)player);
-		SETFLOAT (ap+1, jointCoords[0]);
-		SETFLOAT (ap+2, jointCoords[1]);
-		SETFLOAT (ap+3, jointCoords[2]);
-		SETFLOAT (ap+4, posConfidence);
+		SETFLOAT (ap+0, (t_float)player);
+		SETFLOAT (ap+1, (t_float)jointCoords[0]);
+		SETFLOAT (ap+2, (t_float)jointCoords[1]);
+		SETFLOAT (ap+3, (t_float)jointCoords[2]);
+		SETFLOAT (ap+4, (t_float)posConfidence);
 		if (m_output_euler)
 		{
-			SETFLOAT (ap+5, thetaX);
-			SETFLOAT (ap+6, thetaY);
-			SETFLOAT (ap+7, thetaZ);
-			SETFLOAT (ap+8, orientConfidence);
+			SETFLOAT (ap+5, (t_float)thetaX);
+			SETFLOAT (ap+6, (t_float)thetaY);
+			SETFLOAT (ap+7, (t_float)thetaZ);
+			SETFLOAT (ap+8, (t_float)orientConfidence);
 			numargs=9;
 		}
 
