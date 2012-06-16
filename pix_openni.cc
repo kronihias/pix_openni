@@ -849,7 +849,7 @@ void pix_openni :: render(GemState *state)
 			}
 	
 		// HAND GESTURES
-			if (hand_wanted && !hand_started)
+			if (hand_wanted && !hand_started && depth_started)
 			{
 				post("trying to start hand tracking...");
 				
@@ -925,8 +925,8 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 	{
 		depth_state =  (GemState *) (argv+1)->a_w.w_gpointer;
 
-		// start depth stream if wanted
-		if (depth_wanted && !depth_started)
+		// start depth stream if wanted or needed by other generator
+		if ((depth_wanted || usergen_wanted || skeleton_wanted || hand_wanted) && !depth_started)
 		{
 			post("trying to start depth stream");
 			if (openni_ready)
