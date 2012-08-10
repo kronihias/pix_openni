@@ -1,4 +1,4 @@
-#N canvas 253 129 933 467 10;
+#N canvas 102 111 933 467 10;
 #X obj 109 120 gemhead;
 #X obj 247 54 gemwin;
 #X msg 247 22 dimen 640 480 \, create \, 1;
@@ -13,14 +13,14 @@
 #X msg 416 24 lighting 1;
 #X obj 416 2 loadbang;
 #X obj 226 129 gemhead;
-#X obj 295 303 pix_texture;
-#X obj 295 400 rectangle 4 3;
-#X obj 332 381 * 4;
-#X obj 370 380 * 3;
-#X floatatom 332 363 5 0 0 0 - - -;
-#X obj 332 323 loadbang;
+#X obj 315 303 pix_texture;
+#X obj 315 400 rectangle 4 3;
+#X obj 352 381 * 4;
+#X obj 390 380 * 3;
+#X floatatom 352 363 5 0 0 0 - - -;
+#X obj 352 323 loadbang;
 #X obj 109 226 translateXYZ -3 2 0;
-#N canvas 229 132 1012 452 properties 0;
+#N canvas 125 135 1012 452 properties 0;
 #X text 29 17 properties for pix_openni;
 #X obj 54 54 cnv 15 300 150 empty empty empty 20 12 0 14 -232576 -66577
 0;
@@ -50,13 +50,13 @@
 #X obj 394 170 s \$0-prop;
 #X obj 5 222 cnv 15 350 150 empty empty empty 20 12 0 14 -204800 -66577
 0;
-#X msg 12 315 depth_output \$1;
-#X obj 12 250 vradio 15 1 0 4 empty empty empty 0 -8 0 10 -262144 -1
+#X msg 9 302 depth_output \$1;
+#X obj 9 266 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
 -1 0;
 #X msg 239 291 registration \$1;
 #X obj 239 257 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
 -1 -1 0;
-#X obj 12 349 s \$0-prop;
+#X obj 9 349 s \$0-prop;
 #X text 8 223 DEPTH OUTPUT PROPERTIES;
 #X obj 379 223 cnv 15 300 150 empty empty empty 20 12 0 14 -162280
 -66577 0;
@@ -78,7 +78,6 @@
 #X text 241 237 of RGB and Depth;
 #X text 257 254 OFF;
 #X text 257 270 ON;
-#X text 29 247 normal -> human viewable;
 #X obj 692 55 cnv 15 300 350 empty empty empty 20 12 0 14 -128992 -66577
 0;
 #X obj 697 274 s \$0-prop;
@@ -117,9 +116,6 @@
 #X text 257 329 ON;
 #X msg 239 349 usercoloring \$1;
 #X text 275 328 needs usergen;
-#X text 29 295 raw yuv (2 byte)->16 bit mm;
-#X text 30 263 greyscale (8 bit);
-#X text 29 279 raw rgba -> mm in r&g \, userid b ch.;
 #X text 441 314 -> joint r_hand id x y z convidence;
 #X text 436 330 -> /skeleton/joint/r_hand id x y z conv.;
 #X obj 790 301 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
@@ -132,11 +128,13 @@
 #X msg 791 381 skeleton_smoothing \$1;
 #X floatatom 791 360 5 0 0 0 - - -;
 #X text 828 359 0 - 1 default: 0.5;
+#X text 26 263 rgba -> mm in r&g \, userid b ch.;
+#X text 26 279 yuv (2 byte)->16 bit mm;
 #X connect 2 0 11 0;
 #X connect 3 0 2 0;
 #X connect 4 0 5 0;
 #X connect 5 0 11 0;
-#X connect 6 0 73 0;
+#X connect 6 0 72 0;
 #X connect 7 0 8 0;
 #X connect 8 0 11 0;
 #X connect 14 0 20 0;
@@ -151,26 +149,26 @@
 #X connect 32 0 35 0;
 #X connect 35 0 40 0;
 #X connect 36 0 40 0;
-#X connect 48 0 54 0;
-#X connect 50 0 47 0;
-#X connect 53 0 47 0;
-#X connect 54 0 47 0;
-#X connect 55 0 57 0;
-#X connect 56 0 47 0;
-#X connect 57 0 47 0;
-#X connect 59 0 63 0;
-#X connect 63 0 47 0;
-#X connect 71 0 72 0;
+#X connect 47 0 53 0;
+#X connect 49 0 46 0;
+#X connect 52 0 46 0;
+#X connect 53 0 46 0;
+#X connect 54 0 56 0;
+#X connect 55 0 46 0;
+#X connect 56 0 46 0;
+#X connect 58 0 62 0;
+#X connect 62 0 46 0;
+#X connect 70 0 71 0;
+#X connect 71 0 11 0;
 #X connect 72 0 11 0;
-#X connect 73 0 11 0;
-#X connect 75 0 78 0;
-#X connect 78 0 26 0;
-#X connect 85 0 88 0;
-#X connect 88 0 47 0;
-#X connect 91 0 47 0;
-#X connect 92 0 91 0;
+#X connect 74 0 77 0;
+#X connect 77 0 26 0;
+#X connect 81 0 84 0;
+#X connect 84 0 46 0;
+#X connect 87 0 46 0;
+#X connect 88 0 87 0;
 #X restore 43 87 pd properties;
-#X obj 295 274 translateXYZ 3 2 0;
+#X obj 315 274 translateXYZ 3 2 0;
 #N canvas 1 151 319 137 pix_info 0;
 #X obj -17 39 pix_info ____________________;
 #X floatatom -28 77 5 0 0 0 - - -;
@@ -204,7 +202,7 @@
 #X connect 0 5 5 0;
 #X connect 0 6 6 0;
 #X connect 7 0 0 0;
-#X restore 295 426 pd pix_info;
+#X restore 315 426 pd pix_info;
 #X text 610 95 arguments:;
 #X text 613 133 2nd: rgb stream on;
 #X text 613 149 3rd: depth stream on;
@@ -270,17 +268,16 @@
 #X connect 32 1 5 0;
 #X connect 32 1 7 0;
 #X connect 32 2 26 0;
-#X restore 416 422 pd distance_measurement;
+#X restore 436 422 pd distance_measurement;
 #X msg 146 295 0.5;
-#X msg 332 343 0.5;
+#X msg 352 343 0.5;
 #X obj 43 120 r \$0-prop;
 #X obj -54 6 cnv 15 250 60 empty empty empty 20 12 0 14 -232576 -66577
 0;
 #X text -52 24 (C)2011/2012 Matthias Kronlachner;
 #X text -54 44 depends on OpenNI \, NITE and SensorKinect;
-#X text -50 6 pix_openni 0.03 experimental!!;
 #X text 110 400 RGB Image;
-#X text 297 252 DEPTH Image;
+#X text 324 256 DEPTH Image;
 #N canvas 63 24 649 259 record 0;
 #X obj 55 179 s \$0-prop;
 #X obj 69 111 vradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144 -1
@@ -335,7 +332,7 @@ later;
 #X connect 18 0 0 0;
 #X connect 19 0 18 0;
 #X restore -1 159 pd record;
-#N canvas 623 269 531 259 tracking_data 1;
+#N canvas 623 269 531 259 tracking_data 0;
 #X obj 32 83 gem_sceleton;
 #N canvas 581 218 675 356 status_msg 0;
 #X obj 16 26 inlet;
@@ -549,6 +546,11 @@ later;
 #X text 233 166 tracking and info output;
 #X obj 465 200 print;
 #X obj 461 166 route user;
+#X obj 315 236 pix_depth2rgba 3000;
+#X floatatom 426 208 5 0 0 0 color-gradient-max-distance-in-mm - -
+;
+#X text 442 235 convert depth output to human viewable;
+#X text -50 6 pix_openni 0.1;
 #X connect 0 0 31 0;
 #X connect 2 0 1 0;
 #X connect 3 0 1 0;
@@ -574,10 +576,12 @@ later;
 #X connect 20 0 4 0;
 #X connect 22 0 14 0;
 #X connect 31 0 20 0;
-#X connect 31 1 22 0;
-#X connect 31 2 43 0;
-#X connect 31 2 46 0;
+#X connect 31 1 46 0;
+#X connect 31 2 42 0;
+#X connect 31 2 45 0;
 #X connect 33 0 9 0;
 #X connect 34 0 18 0;
 #X connect 35 0 31 0;
-#X connect 46 0 45 0;
+#X connect 45 0 44 0;
+#X connect 46 0 22 0;
+#X connect 47 0 46 2;

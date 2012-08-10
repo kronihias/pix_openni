@@ -33,7 +33,6 @@ CPPEXTERN_NEW_WITH_GIMME(pix_openni);
 //---------------------------------------------------------------------------
 // Defines
 //---------------------------------------------------------------------------
-//#define SAMPLE_XML_PATH "SamplesConfig.xml"  // should be replaced with in-code initialisation
 
 #define DISPLAY_MODE_OVERLAY	1
 #define DISPLAY_MODE_DEPTH		2
@@ -46,6 +45,7 @@ CPPEXTERN_NEW_WITH_GIMME(pix_openni);
 #define PI_H 1.570796326794897
 
 #define GESTURE_TO_USE "Wave"
+#define GESTURE_TO_USE2 "Click"
 
 //---------------------------------------------------------------------------
 // Globals
@@ -113,7 +113,7 @@ XnUInt32 nColors = 10;
 void XN_CALLBACK_TYPE Gesture_Recognized(xn::GestureGenerator& generator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie) {
 		pix_openni *me = (pix_openni*)pCookie;
     me->post("Gesture recognized: %s\n", strGesture);
-    gestureGenerator.RemoveGesture(strGesture);
+    // gestureGenerator.RemoveGesture(strGesture);
     g_HandsGenerator.StartTracking(*pEndPosition);
 }
 
@@ -139,7 +139,8 @@ void XN_CALLBACK_TYPE new_hand(xn::HandsGenerator &generator, XnUserID nId, cons
 }
 void XN_CALLBACK_TYPE lost_hand(xn::HandsGenerator &generator, XnUserID nId, XnFloat fTime, void *pCookie) {
   gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
-
+	gestureGenerator.AddGesture(GESTURE_TO_USE2, NULL);
+	
 	pix_openni *me = (pix_openni*)pCookie;
 	//me->post("Lost Hand %d\n", nId);
 	
@@ -395,7 +396,7 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 
 	m_dataout = outlet_new(this->x_obj, 0);
 	
-	post("pix_openni 0.03 - experimental - 2011/2012 by Matthias Kronlachner");
+	post("pix_openni 0.10 - 2011/2012 by Matthias Kronlachner");
 
 	// init status variables
 	
@@ -979,15 +980,11 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 				// check if depth output request changed -> reallocate image_struct
 				if (req_depth_output != depth_output)
 				{
-					if ((req_depth_output == 0) || (req_depth_output == 2))
+					if (req_depth_output == 0)
 					{
 						m_depth.image.setCsizeByFormat(GL_RGBA);
 					}
 					if (req_depth_output == 1)
-					{
-						m_depth.image.setCsizeByFormat(GL_LUMINANCE);
-					}
-					if (req_depth_output == 3)
 					{
 						m_depth.image.setCsizeByFormat(GL_YCBCR_422_GEM);
 					}
@@ -1006,138 +1003,31 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 			//const XnDepthPixel* pDepth = g_depthMD.Data();
 				const XnDepthPixel* pDepth = g_depth.GetDepthMap(); 
 
-				if (depth_output == 0) // RGBA mapped
-				{
-					uint8_t *pixels = m_depth.image.data;
-					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
-
-					for( unsigned int i = 0 ; i < 640*480 ; i++) {
-						// user labeling
-						XnLabel label = 0;
-						if (usergen_started && m_usercoloring)
-						{
-							label = *pLabels;
-						}
-						XnUInt32 nColorID = label % nColors;
-						if (label == 0)
-						{
-							nColorID = nColors;
-						}
-
-						int pval = t_gamma[depth_pixel[i]];
-						int lb = pval & 0xff;
-						int form_mult = 4; // Changed for RGBA (4 instead of originally 3)
-						switch (pval>>8) {
-							case 0:																					
-							pixels[form_mult*i+0+index_offset] = 255 * Colors[nColorID][0];
-							pixels[form_mult*i+1+index_offset] = (255-lb) * Colors[nColorID][1];
-							pixels[form_mult*i+2+index_offset] = (255-lb) * Colors[nColorID][2];
-							break;
-							case 1:
-							pixels[form_mult*i+0+index_offset] = 255 * Colors[nColorID][0];
-							pixels[form_mult*i+1+index_offset] = lb * Colors[nColorID][1];
-							pixels[form_mult*i+2+index_offset] = 0;
-							break;
-							case 2:
-							pixels[form_mult*i+0+index_offset] = (255-lb) * Colors[nColorID][0];
-							pixels[form_mult*i+1+index_offset] = 255 * Colors[nColorID][1];
-							pixels[form_mult*i+2+index_offset] = 0;
-							break;
-							case 3:
-							pixels[form_mult*i+0+index_offset] = 0;
-							pixels[form_mult*i+1+index_offset] = 255 * Colors[nColorID][1];
-							pixels[form_mult*i+2+index_offset] = lb * Colors[nColorID][2];
-							break;
-							case 4:
-							pixels[form_mult*i+0+index_offset] = 0;
-							pixels[form_mult*i+1+index_offset] = (255-lb) * Colors[nColorID][1];
-							pixels[form_mult*i+2+index_offset] = 255 * Colors[nColorID][2];
-							break;
-							case 5:
-							pixels[form_mult*i+0+index_offset] = 0 * Colors[nColorID][0];
-							pixels[form_mult*i+1+index_offset] = 0;
-							pixels[form_mult*i+2+index_offset] = (255-lb) * Colors[nColorID][2];
-							break;
-							default:
-							pixels[form_mult*i+0+index_offset] = 0;
-							pixels[form_mult*i+1+index_offset] = 0;
-							pixels[form_mult*i+2+index_offset] = 0;
-							break;
-						}
-						pLabels++;
-					}
-				}
-
-				if (depth_output == 1) // GREYSCALE
+				if (depth_output == 0) // RAW RGBA -> R 8 MSB, G 8 LSB of 16 bit depth value, B->userid if usergen 1 and usercoloring 1
 				{
 					uint8_t *pixels = m_depth.image.data;
 
 					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
 
 					for(int y = 0; y < 640*480; y++) {
+						pixels[chRed]=(uint8_t)(depth_pixel[y] >> 8);
+						pixels[chGreen]=(uint8_t)(depth_pixel[y] & 0xff);
 						// user coloring
 						XnLabel label = 0;
 						if (usergen_started && m_usercoloring)
 						{
 							label = *pLabels;
 						}
-						if (label != 0)
-						{
-							pixels[y+index_offset]=255;
-						} else {
-							pixels[y+index_offset]=(uint8_t)(depth_pixel[y] >> 5);
-						}
-
-						pLabels++;
-					}
-				}
-
-				if (depth_output == 2) // RAW RGBA -> R 8 MSB, G 8 LSB of 16 bit depth value, B->userid if usergen 1 and usercoloring 1
-				{
-					uint8_t *pixels = m_depth.image.data;
-
-					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
-
-					for(int y = 0; y < 640*480 - index_offset; y++) {
-						pixels[4*y+index_offset]=(uint8_t)(depth_pixel[y] >> 8);
-						pixels[4*y+1+index_offset]=(uint8_t)(depth_pixel[y] & 0xff);
-						// user coloring
-						XnLabel label = 0;
-						if (usergen_started && m_usercoloring)
-						{
-							label = *pLabels;
-						}
-						pixels[4*y+2+index_offset]=label; // set user id to b channel
-						pixels[4*y+3+index_offset]=255; // set alpha
-
+						pixels[chBlue]=label; // set user id to b channel
+						pixels[chAlpha]=255; // set alpha
+						
+						pixels+=4;
 						pLabels++;
 					}
 
-/* attempt to make conversion faster...?
-									int size = m_depth.image.xsize * m_depth.image.ysize * m_depth.image.csize;
-									size = size-index_offset;
-									pixels+=index_offset;
-									
-									while (size--) {
-										pixels[0]=(uint8_t)(*depth_pixel >> 8);
-										pixels[1]=(uint8_t)(*depth_pixel & 0xff);
-										// user coloring
-										XnLabel label = 0;
-										if (usergen_started && m_usercoloring)
-										{
-											label = *pLabels;
-										}
-										pixels[2]=label;
-										pixels[3]=255;
-										
-										depth_pixel++;
-										pixels+=4;
-									}
-*/
-
 				}
 
-				if (depth_output == 3) // RAW YUV -> 16 bit Depth
+				if (depth_output == 1) // RAW YUV -> 16 bit Depth
 				{
 					const XnDepthPixel* pDepth = g_depthMD.Data();
 					m_depth.image.data= (unsigned char*)&pDepth[0];
@@ -1578,7 +1468,7 @@ void pix_openni :: bangMessCallback(void *data)
 void pix_openni :: floatDepthOutputMessCallback(void *data, t_floatarg depth_output)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
-  if ((depth_output >= 0) && (depth_output) <= 3)
+  if ((depth_output >= 0) && (depth_output) <= 1)
 		me->req_depth_output=(int)depth_output;
 }
 

@@ -1,5 +1,5 @@
 
-pix_openni (0.03 experimenting...)
+pix_openni (0.10 experimenting...)
 ======================================
 pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking, hand tracking
 
@@ -9,7 +9,7 @@ pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking,
 __________________________________________________________
 
 ::INSTALL::
-tested under Ubuntu and OSX 10.6.8, should run under Windows if you know how to compile it
+tested under Ubuntu, OSX 10.6.8 and Windows 7
 
 OSX: 
 you don't have to compile the external for yourself -> use included binaries from build folder (copy pix_openni.pd_darwin in pix_openni folder)
@@ -34,7 +34,7 @@ Linux:
 
 :: Usage ::
 
-tbf...
+*	Have a look at my pd-kinect-examples at Github: http://github.com/kronihias/pd-kinect-examples
 
 Hand Tracking:
 
@@ -49,37 +49,39 @@ and add or uncomment:
 _________________
 Changelog
 
-
+0.10	* various bugfixes
+		* depth_output simplified - just rgba and yuv available ->
+		* ATTENTION INCOMPABILITY: "viewable" depth output outsourced into pix_depth2rgba
+		* record and playback functionality
+		* user coloring
+		* skeleton settable smoothing factor
+		
 0.03	* switchable OSC Style output of tracking data /skeleton/joint/r_hand id x y z, /hand/coords id x y z
-	* switchable real-world coordinate output in [mm]
-	* switchable registration between rgb image and depth image -> change point of view from depth camera to match with rgb image (overlay)
-	* improved help file
+		* switchable real-world coordinate output in [mm]
+		* switchable registration between rgb image and depth image -> change point of view from depth camera to match with rgb image (overlay)
+		* improved help file
 
 0.02
-	* OSX binaries
-	* output rgb and depth stream simultaneously
-	* hand tracking
-	* change image and depth modes
-	* init without .xml init file
-	* fixed depth to rgb conversion for output_mode 1 & 2
+		* OSX binaries
+		* output rgb and depth stream simultaneously
+		* hand tracking
+		* change image and depth modes
+		* init without .xml init file
+		* fixed depth to rgb conversion for output_mode 1 & 2
 
 
 0.01
-	* skeleton and rgb or depth stream output
+		* skeleton and rgb or depth stream output
 
  ________________
 :::THINGS TO DO:::
-
-*	record and play function for sensor data
 
 *	support for multiple Kinect
 
 *	motor and led control as well as audio is currently not supported from SensorKinect
 	you can do that with pd external freenect: http://github.com/kronihias/freenect
 
-*	clean shutdown of OpenNI framework -> currently you have to kill pd at least under linux
-
-*	cpu performance optimization
+*	optimize record/playback functionality
 
 
 questions: m.kronlachner@gmail.com
