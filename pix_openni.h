@@ -127,6 +127,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			bool m_usercoloring;
 
 			float m_skeleton_smoothing;
+			float m_hand_smoothing;
 			
       bool destroy_thread; // shutdown...
       
@@ -179,6 +180,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			static void    	floatRgbRegistrationMessCallback(void *data, float value);
 			static void    	floatOscOutputMessCallback(void *data, float osc_output);
 			static void    	floatSkeletonSmoothingMessCallback(void *data, float value);
+			static void    	floatHandSmoothingMessCallback(void *data, float value);
 			static void    	floatEulerOutputMessCallback(void *data, float value);
 			static void    	StartUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);
 			static void    	StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom*argv);

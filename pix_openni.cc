@@ -45,7 +45,6 @@ CPPEXTERN_NEW_WITH_GIMME(pix_openni);
 #define PI_H 1.570796326794897
 
 #define GESTURE_TO_USE "Wave"
-#define GESTURE_TO_USE2 "Click"
 
 //---------------------------------------------------------------------------
 // Globals
@@ -112,9 +111,27 @@ XnUInt32 nColors = 10;
 //gesture callbacks
 void XN_CALLBACK_TYPE Gesture_Recognized(xn::GestureGenerator& generator, const XnChar* strGesture, const XnPoint3D* pIDPosition, const XnPoint3D* pEndPosition, void* pCookie) {
 		pix_openni *me = (pix_openni*)pCookie;
-    me->post("Gesture recognized: %s\n", strGesture);
+		
+    //me->post("Gesture recognized: %s\n", strGesture);
     // gestureGenerator.RemoveGesture(strGesture);
-    g_HandsGenerator.StartTracking(*pEndPosition);
+		
+		// send to outlet
+		t_atom ap[1];
+		//SETFLOAT (ap, (int)nId);
+		if (me->m_osc_output)
+		{
+			char out[30];
+			sprintf(out, "/hand/gesture/%s",strGesture);
+			outlet_anything(me->m_dataout, gensym(out), 0, ap);
+		} else {
+			outlet_anything(me->m_dataout, gensym(strGesture), 0, ap);
+		}
+		
+		if (!strcmp(strGesture, GESTURE_TO_USE))
+		{
+			g_HandsGenerator.StartTracking(*pEndPosition);
+		}
+    
 }
 
 void XN_CALLBACK_TYPE Gesture_Process(xn::GestureGenerator& generator, const XnChar* strGesture, const XnPoint3D* pPosition, XnFloat fProgress, void* pCookie) {
@@ -139,7 +156,7 @@ void XN_CALLBACK_TYPE new_hand(xn::HandsGenerator &generator, XnUserID nId, cons
 }
 void XN_CALLBACK_TYPE lost_hand(xn::HandsGenerator &generator, XnUserID nId, XnFloat fTime, void *pCookie) {
   gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
-	gestureGenerator.AddGesture(GESTURE_TO_USE2, NULL);
+	//gestureGenerator.AddGesture(GESTURE_TO_USE2, NULL);
 	
 	pix_openni *me = (pix_openni*)pCookie;
 	//me->post("Lost Hand %d\n", nId);
@@ -429,6 +446,7 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	req_depth_output = 0;
 	
 	m_skeleton_smoothing=0.5;
+	m_hand_smoothing=0.5;
 	
 	// CHECK FOR ARGS AND ACTIVATE STREAMS
 	if (argc >= 1)
@@ -872,9 +890,28 @@ void pix_openni :: render(GemState *state)
 						post("RegisterGestureCallbacks: %s\n", xnGetStatusString(rc));
 						rc = g_HandsGenerator.RegisterHandCallbacks(new_hand, update_hand, lost_hand, this, hHandsCallbacks);
 						post("RegisterHandCallbacks: %s\n", xnGetStatusString(rc));
-						g_HandsGenerator.SetSmoothing(0.2);
+						g_HandsGenerator.SetSmoothing(m_hand_smoothing);
 						g_context.StartGeneratingAll();
-						rc = gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
+						
+						// add all available gestures -> wow thats complicated...
+						XnUInt32 nameLength = 256;
+						XnUInt16 size = gestureGenerator.GetNumberOfAvailableGestures();
+						
+						XnChar **buf = (XnChar**)malloc(size * sizeof(XnChar*));
+						for (int i=0; i < size; i++)
+						{
+							buf[i]=(XnChar*)malloc(nameLength);
+						}
+						
+						rc = gestureGenerator.EnumerateAllGestures(buf, nameLength, size);
+						for (int i=0; i < size; i++)
+						{
+							rc = gestureGenerator.AddGesture(buf[i], NULL);
+							post("Registered Gesture: %s\n", buf[i]);
+						}
+						free (buf);
+						 
+						//rc = gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
 						if (rc == XN_STATUS_OK)
 						{
 							post("OpenNI:: HandTracking started!");
@@ -1420,6 +1457,8 @@ void pix_openni :: obj_setupCallback(t_class *classPtr)
 	  	  gensym("osc_style_output"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatSkeletonSmoothingMessCallback,
 	  	  gensym("skeleton_smoothing"), A_FLOAT, A_NULL);
+	class_addmethod(classPtr, (t_method)&pix_openni::floatHandSmoothingMessCallback,
+	  	  gensym("hand_smoothing"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::floatEulerOutputMessCallback,
 	  	  gensym("euler_output"), A_FLOAT, A_NULL);
 	class_addmethod(classPtr, (t_method)&pix_openni::StopUserMessCallback,
@@ -1754,15 +1793,32 @@ void pix_openni :: floatOscOutputMessCallback(void *data, t_floatarg osc_output)
 		me->m_osc_output=true;
 }
 
+void pix_openni :: floatHandSmoothingMessCallback(void *data, t_floatarg value)
+{
+  pix_openni *me = (pix_openni*)GetMyClass(data);
+  if ((value >= 0.0) && (value <= 1.0))
+	{
+		if (me->hand_started)
+		{
+			g_HandsGenerator.SetSmoothing(value);
+		}
+		me->m_hand_smoothing=value;
+	}
+}
+
 void pix_openni :: floatSkeletonSmoothingMessCallback(void *data, t_floatarg value)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
   if ((value >= 0.0) && (value <= 1.0))
 	{
-		g_UserGenerator.GetSkeletonCap().SetSmoothing(value);
+		if (me->skeleton_started)
+		{
+			g_UserGenerator.GetSkeletonCap().SetSmoothing(value);
+		}
 		me->m_skeleton_smoothing=value;
 	}
 }
+
 void pix_openni :: floatEulerOutputMessCallback(void *data, t_floatarg value)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);

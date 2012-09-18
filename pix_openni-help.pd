@@ -1,4 +1,4 @@
-#N canvas 268 150 843 515 10;
+#N canvas 437 52 843 515 10;
 #X obj 109 120 gemhead;
 #X obj 247 54 gemwin;
 #X msg 247 22 dimen 640 480 \, create \, 1;
@@ -9,7 +9,7 @@
 #X obj 416 2 loadbang;
 #X obj 226 129 gemhead;
 #X obj 321 371 pix_texture;
-#N canvas 125 135 1012 452 properties 0;
+#N canvas 248 71 1012 481 properties 1;
 #X text 29 17 properties for pix_openni;
 #X obj 54 54 cnv 15 300 150 empty empty empty 20 12 0 14 -232576 -66577
 0;
@@ -119,6 +119,9 @@
 #X text 828 359 0 - 1 default: 0.5;
 #X text 26 263 rgba -> mm in r&g \, userid b ch.;
 #X text 26 279 yuv (2 byte)->16 bit mm;
+#X floatatom 798 416 5 0 0 0 - - -;
+#X text 835 415 0 - 1 default: 0.5;
+#X msg 798 437 hand_smoothing \$1;
 #X connect 2 0 11 0;
 #X connect 3 0 2 0;
 #X connect 4 0 5 0;
@@ -156,6 +159,8 @@
 #X connect 84 0 46 0;
 #X connect 87 0 46 0;
 #X connect 88 0 87 0;
+#X connect 92 0 94 0;
+#X connect 94 0 46 0;
 #X restore 43 87 pd properties;
 #N canvas 1 151 319 137 pix_info 0;
 #X obj -17 39 pix_info ____________________;
@@ -560,6 +565,7 @@ later;
 #X obj 321 398 rectangle 1.5 1.15;
 #X obj 22 344 translateXYZ -3.5 2 0;
 #X obj 321 342 translateXYZ 3.5 2 0;
+#X obj 167 184 alpha;
 #X connect 0 0 19 0;
 #X connect 2 0 1 0;
 #X connect 3 0 1 0;
@@ -570,7 +576,7 @@ later;
 #X connect 8 0 19 1;
 #X connect 9 0 44 0;
 #X connect 19 0 45 0;
-#X connect 19 1 35 0;
+#X connect 19 1 47 0;
 #X connect 19 2 26 0;
 #X connect 20 0 19 0;
 #X connect 28 0 38 2;
@@ -587,3 +593,4 @@ later;
 #X connect 44 0 12 0;
 #X connect 45 0 4 0;
 #X connect 46 0 9 0;
+#X connect 47 0 35 0;
