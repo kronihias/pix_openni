@@ -11,12 +11,29 @@ __________________________________________________________
 ::INSTALL::
 tested under Ubuntu, OSX 10.6.8 and Windows 7
 
+
 OSX: 
 you don't have to compile the external for yourself -> use included binaries from build folder (copy pix_openni.pd_darwin in pix_openni folder)
 you still need OpenNI, NITE and SensorKinect!!
 * 	download latest OpenNI and NITE unstable build for OSX from http://www.openni.org/Downloads/OpenNIModules.aspx, 
 	sudo ./install.sh in the extracted folders
 *	install SensorKinect from https://github.com/avin2/SensorKinect
+
+
+WINDOWS:
+you don't have to compile the external for yourself -> use included binaries from build folder (copy pix_openni.dll in pix_openni folder)
+install OpenNI, NITE and SensorKinect
+
+http://www.openni.org/Downloads/OpenNIModules.aspx
+(OpenNI Binaries, unstable, x86 - 32 bit)
+
+Binary of NITE
+http://www.openni.org/Downloads/OpenNIModules.aspx
+(OepnNI Compiliant Middleware Binaries, x86 - 32 Bit)
+
+Binary of avin2 / SensorKinect
+https://github.com/avin2/SensorKinect/downloads
+SensorKinect093-Bin-Win32-v5.1.2.1.msi
 
 
 Linux:
