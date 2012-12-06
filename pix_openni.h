@@ -107,7 +107,10 @@ class GEM_EXTERN pix_openni : public GemBase
 
 			int openni_ready;
 			
-			bool m_player; //playback started?
+        bool m_player; //playback started?
+    
+        bool m_recorder;  // recorder started?
+    
       bool rgb_started;
       bool depth_started;
       bool audio_started;
@@ -129,6 +132,8 @@ class GEM_EXTERN pix_openni : public GemBase
 			float m_skeleton_smoothing;
 			float m_hand_smoothing;
 			
+
+    
       bool destroy_thread; // shutdown...
       
 			int	depth_output;

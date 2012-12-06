@@ -1,5 +1,5 @@
 
-pix_openni (0.10 experimenting...)
+pix_openni (0.11 experimenting...)
 ======================================
 pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking, hand tracking
 
@@ -9,7 +9,7 @@ pure data / Gem external to get Kinect rgb and depth streams, skeleton tracking,
 __________________________________________________________
 
 ::INSTALL::
-tested under Ubuntu, OSX 10.6.8 and Windows 7
+tested under Ubuntu, OSX 10.8.2 and Windows 7
 
 
 OSX: 
@@ -66,6 +66,9 @@ and add or uncomment:
 _________________
 Changelog
 
+0.11	* improved playback/record functionality -> now it is possible to switch between live and playback
+		* bugfixes
+
 0.10	* various bugfixes
 		* depth_output simplified - just rgba and yuv available ->
 		* ATTENTION INCOMPABILITY: "viewable" depth output outsourced into pix_depth2rgba
@@ -95,10 +98,11 @@ Changelog
 
 *	support for multiple Kinect
 
+* 	playback speed is still a mystery!
+
+
 *	motor and led control as well as audio is currently not supported from SensorKinect
 	you can do that with pd external freenect: http://github.com/kronihias/freenect
-
-*	optimize record/playback functionality
 
 
 questions: m.kronlachner@gmail.com

@@ -418,6 +418,8 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	// init status variables
 	
 	m_player = false;
+    m_recorder = false;
+    
 	depth_wanted = false;
 	depth_started= false; 
 	rgb_wanted = false;
@@ -432,6 +434,8 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	m_registration_wanted=false;
 	m_output_euler=false;
 	
+
+    
 	openni_ready = false;
 	destroy_thread = false;
 	
@@ -583,6 +587,7 @@ void *pix_openni::openni_thread_func(void*target)
 						if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
 						{
 							me->post("Supplied user generator doesn't support skeleton\n");
+                            me->skeleton_wanted = false;
 						}
 						
 						rc = g_UserGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, me, hUserCallbacks);
@@ -770,7 +775,7 @@ void pix_openni :: render(GemState *state)
 			}
 		}
 			
-			// SKELETON CODE IN RENDER METHOD!! -> PACK INTO THREAD!
+			// SKELETON CODE IN RENDER METHOD!! -> PACK INTO THREAD!?
 
 			if (((usergen_wanted && !usergen_started) || (skeleton_wanted && !usergen_started)) && depth_started)
 			{
@@ -802,13 +807,14 @@ void pix_openni :: render(GemState *state)
 				usergen_started=true;
 			}
 			
-			if (skeleton_wanted && !skeleton_started && usergen_started)
+			if (skeleton_wanted && !skeleton_started && usergen_started && depth_started)
 			{
 				post("OpenNI:: trying to start skeleton...");
 
 				if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
 				{
 					post("OpenNI:: Supplied user generator doesn't support skeleton\n");
+                    skeleton_wanted=false;
 					return;
 				}
 
@@ -1644,6 +1650,13 @@ void pix_openni :: UserInfoMessCallback(void *data)
 void pix_openni :: floatRecordMessCallback(void *data, t_floatarg value)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
+    
+    if (me->m_player)
+    {
+        me->post("ERROR: can not record during playback!");
+        return;
+    }
+    
 	int nRetVal = 0;
 	//me->post("filename: %s", me->m_filename.data());
 	if (((int)value == 1) && (me->m_filename.data() != ""))
@@ -1656,10 +1669,34 @@ void pix_openni :: floatRecordMessCallback(void *data, t_floatarg value)
 		nRetVal=g_recorder.SetDestination(XN_RECORD_MEDIUM_FILE, me->m_filename.data()); // set filename
 		me->post("set file name. %s", xnGetStatusString(nRetVal));
 		
-		nRetVal = g_recorder.AddNodeToRecording(g_image, XN_CODEC_JPEG);
-		me->post("added image node. %s", xnGetStatusString(nRetVal));
-		nRetVal = g_recorder.AddNodeToRecording(g_depth, XN_CODEC_16Z_EMB_TABLES);
-		me->post("added depth node. %s", xnGetStatusString(nRetVal));
+        if (me->rgb_started)
+        {
+            nRetVal = g_recorder.AddNodeToRecording(g_image, XN_CODEC_JPEG);
+            me->post("added image node. %s", xnGetStatusString(nRetVal));
+        }
+        
+        if (me->depth_started)
+        {
+            nRetVal = g_recorder.AddNodeToRecording(g_depth, XN_CODEC_16Z_EMB_TABLES);
+            me->post("added depth node. %s", xnGetStatusString(nRetVal));
+        }
+        /*
+         // they are not supported
+        if (me->usergen_started)
+        {
+            nRetVal = g_recorder.AddNodeToRecording(g_UserGenerator, XN_CODEC_UNCOMPRESSED);
+            me->post("added usergen node. %s", xnGetStatusString(nRetVal));
+        }
+        
+        if (me->hand_started)
+        {
+            nRetVal = g_recorder.AddNodeToRecording(g_HandsGenerator, XN_CODEC_UNCOMPRESSED);
+            me->post("added hand node. %s", xnGetStatusString(nRetVal));
+            nRetVal = g_recorder.AddNodeToRecording(gestureGenerator, XN_CODEC_UNCOMPRESSED);
+            me->post("added gesture node. %s", xnGetStatusString(nRetVal));
+        }
+        */
+        me->m_recorder = true;
 		
 	}
 	
@@ -1667,25 +1704,105 @@ void pix_openni :: floatRecordMessCallback(void *data, t_floatarg value)
 	{
 		g_recorder.Release();
 		me->post("recording stopped.");
+        me->m_recorder = false;
 	}
 }
 
-// TO BE DONE....!
+// Playback logic
 void pix_openni :: floatPlayMessCallback(void *data, t_floatarg value)
 {
   pix_openni *me = (pix_openni*)GetMyClass(data);
 	int nRetVal = 0;
 	//me->post("filename: %s", me->m_filename.data());
+    
+    if (me->m_recorder)
+    {
+        me->post("ERROR: can not playback during recording");
+        return;
+    }
+    
 	if (((int)value == 1) && (me->m_filename.data() != ""))
 	{
-		nRetVal = g_context.OpenFileRecording(me->m_filename.data(), g_player) ;
-		me->post("opened file recording? %s", xnGetStatusString(nRetVal));
-		if (nRetVal == XN_STATUS_OK) me->m_player = true;
+        if (me->rgb_started || me->depth_started || me->skeleton_started) {
+            me->openni_ready == false;
+        }
+        if (me->depth_started)
+        {
+            g_depth.Release();
+            me->depth_started = false;
+        }
+		
+        if (me->rgb_started)
+        {
+            g_image.Release();
+            me->rgb_started = false;
+        }
+        
+        if (me->usergen_started)
+        {
+            g_UserGenerator.Release();
+            me->usergen_started = false;
+            me->skeleton_started = false;
+        }
+        
+        if (me->hand_started)
+        {
+            gestureGenerator.Release();
+            g_HandsGenerator.Release();
+            me->hand_started = false;
+        }
+        
+		nRetVal = g_context.OpenFileRecording(me->m_filename.data(), g_player);
+        me->post("opened file recording? %s", xnGetStatusString(nRetVal));
+        
+        if (nRetVal == XN_STATUS_OK) {
+            //NodeInfoList currentNodes;
+            //nRetVal = g_context.EnumerateExistingNodes(currentNodes);
+            
+            me->openni_ready = true;
+            me->m_player = true;
+        }
 	}
 	
 	if ((int)value == 0)
 	{
-		g_context.Release();
+        me->openni_ready = false;
+        if (me->depth_started)
+        {
+            g_depth.Release();
+            me->depth_started = false;
+        }
+		
+        if (me->rgb_started)
+        {
+            g_image.Release();
+            me->rgb_started = false;
+        }
+        
+        if (me->usergen_started)
+        {
+            g_UserGenerator.Release();
+            me->usergen_started = false;
+            me->skeleton_started = false;
+        }
+        
+        if (me->hand_started)
+        {
+            g_HandsGenerator.Release();
+            gestureGenerator.Release();
+            me->hand_started = false;
+        }
+        g_player.Release();
+        
+        nRetVal = g_context.Init();
+		if (nRetVal != XN_STATUS_OK)
+		{
+			me->post("OPEN NI init() failed.");
+		} else {
+			me->post("OPEN NI initialised successfully.");
+            me->m_player = false;
+			me->openni_ready = true;
+		}
 	}
 }
 
