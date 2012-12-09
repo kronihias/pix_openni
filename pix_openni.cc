@@ -56,7 +56,9 @@ unsigned int g_nTexMapY = 0;
 
 unsigned int g_nViewState = DEFAULT_DISPLAY_MODE;
 
+/*
 Context g_context;
+Device g_Device;
 ScriptNode g_scriptNode;
 DepthGenerator g_depth;
 ImageGenerator g_image;
@@ -72,14 +74,9 @@ Player g_player;
 HandsGenerator g_HandsGenerator;
 GestureGenerator gestureGenerator;
 
+*/
 XnBool g_bNeedPose = FALSE;
 XnChar g_strPose[20] = "";
-XnBool g_bDrawBackground = TRUE;
-XnBool g_bDrawPixels = TRUE;
-XnBool g_bDrawSkeleton = TRUE;
-XnBool g_bPrintID = TRUE;
-XnBool g_bPrintState = TRUE;
-
 
 
 //SCELETON SCALE
@@ -129,7 +126,7 @@ void XN_CALLBACK_TYPE Gesture_Recognized(xn::GestureGenerator& generator, const 
 		
 		if (!strcmp(strGesture, GESTURE_TO_USE))
 		{
-			g_HandsGenerator.StartTracking(*pEndPosition);
+			me->g_HandsGenerator.StartTracking(*pEndPosition);
 		}
     
 }
@@ -155,10 +152,11 @@ void XN_CALLBACK_TYPE new_hand(xn::HandsGenerator &generator, XnUserID nId, cons
 
 }
 void XN_CALLBACK_TYPE lost_hand(xn::HandsGenerator &generator, XnUserID nId, XnFloat fTime, void *pCookie) {
-  gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
-	//gestureGenerator.AddGesture(GESTURE_TO_USE2, NULL);
 	
 	pix_openni *me = (pix_openni*)pCookie;
+    
+    me->gestureGenerator.AddGesture(GESTURE_TO_USE, NULL);
+    //me->gestureGenerator.AddGesture(GESTURE_TO_USE2, NULL);
 	//me->post("Lost Hand %d\n", nId);
 	
 	t_atom ap[1];
@@ -212,10 +210,10 @@ void XN_CALLBACK_TYPE UserGenerator_NewData(xn::ProductionNode& productionnote, 
 		
 		XnUserID aUsers[15];
 		XnUInt16 nUsers = 15;
-		g_UserGenerator.GetUsers(aUsers, nUsers);
+		me->g_UserGenerator.GetUsers(aUsers, nUsers);
 		
 		for (int i = 0; i < nUsers; ++i) {
-			if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
+			if (me->g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
 				
 				for(int j = 0; j <= 24; ++j)
 				{
@@ -248,11 +246,11 @@ void XN_CALLBACK_TYPE User_NewUser(xn::UserGenerator& generator, XnUserID nId, v
 	{
 		if (g_bNeedPose)
 		{
-			g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
+			me->g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
 		}
 		else
 		{
-			g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+			me->g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
 		}
 	}
 }
@@ -286,8 +284,8 @@ void XN_CALLBACK_TYPE UserPose_PoseDetected(xn::PoseDetectionCapability& capabil
 		outlet_anything(me->m_dataout, gensym("pose_detected"), 1, ap);
 	}
 
-	g_UserGenerator.GetPoseDetectionCap().StopPoseDetection(nId);
-	g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+	me->g_UserGenerator.GetPoseDetectionCap().StopPoseDetection(nId);
+	me->g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
 }
 // Callback: Started calibration
 void XN_CALLBACK_TYPE UserCalibration_CalibrationStart(xn::SkeletonCapability& capability, XnUserID nId, void* pCookie)
@@ -325,7 +323,7 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& cap
 		}
 
 	
-		g_UserGenerator.GetSkeletonCap().StartTracking(nId);
+		me->g_UserGenerator.GetSkeletonCap().StartTracking(nId);
 	}
 	else
 	{
@@ -341,11 +339,11 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationEnd(xn::SkeletonCapability& cap
 		
 		if (g_bNeedPose)
 		{
-			g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
+			me->g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
 		}
 		else
 		{
-			g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+			me->g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
 		}
 	}
 }
@@ -369,8 +367,8 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability
 			outlet_anything(me->m_dataout, gensym("new_skel"), 1, ap);
 		}
 	
-		g_UserGenerator.GetSkeletonCap().StartTracking(nId);
-		g_UserGenerator.GetSkeletonCap().StartTracking(nId);
+		me->g_UserGenerator.GetSkeletonCap().StartTracking(nId);
+		me->g_UserGenerator.GetSkeletonCap().StartTracking(nId);
 	}
 	else
 	{
@@ -386,11 +384,11 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability
 		
 		if (g_bNeedPose)
 		{
-			g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
+			me->g_UserGenerator.GetPoseDetectionCap().StartPoseDetection(g_strPose, nId);
 		}
 		else
 		{
-			g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
+			me->g_UserGenerator.GetSkeletonCap().RequestCalibration(nId, TRUE);
 		}
 	}
 }
@@ -404,7 +402,6 @@ void XN_CALLBACK_TYPE UserCalibration_CalibrationComplete(xn::SkeletonCapability
 //
 /////////////////////////////////////////////////////////
 
-//pix_openni :: pix_openni(t_float kinect_device_nr, t_float rgb_on, t_float depth_on)
 pix_openni :: pix_openni(int argc, t_atom *argv)
 {
 	// second inlet/outlet for depthmap
@@ -413,7 +410,7 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 
 	m_dataout = outlet_new(this->x_obj, 0);
 	
-	post("pix_openni 0.10 - 2011/2012 by Matthias Kronlachner");
+	post("pix_openni 0.12 - 2011/2012 by Matthias Kronlachner");
 
 	// init status variables
 	
@@ -437,7 +434,6 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 
     
 	openni_ready = false;
-	destroy_thread = false;
 	
 	m_osc_output = false;
 	m_real_world_coords = false;
@@ -452,10 +448,13 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	m_skeleton_smoothing=0.5;
 	m_hand_smoothing=0.5;
 	
+    device_id = 1;
+    
 	// CHECK FOR ARGS AND ACTIVATE STREAMS
 	if (argc >= 1)
 	{
-		post("using multiple kinects not available now... chosen ID: %d", atom_getint(&argv[0]));
+		post("chosen Kinect Nr: %d", atom_getint(&argv[0]));
+        device_id = atom_getint(&argv[0]);
 	}
 	if (argc >= 2)
 	{
@@ -487,36 +486,9 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 	}
 
 	m_width=640;
-  m_height=480;
-
-	XnStatus rc;  // ERROR STATUS
-	
-//// INIT IN CODE::
-
-		//Context context;
-		rc = g_context.Init(); // key difference: Init() not InitFromXml()
-		if (rc != XN_STATUS_OK)
-		{
-			post("OPEN NI init() failed.");
-		} else {
-			post("OPEN NI initialised successfully.");
-			openni_ready = true;
-		}
-	
-	// CREATE THREAD FOR SKELETON AND HAND
-	//int res = pthread_create(&openni_thread, NULL, openni_thread_func, this);
-	//if (res) {
-		//throw(GemException("pthread_create failed\n"));
-	//}
-	
-	//// DEPTH CONVERSION
-	//depth map representation for mm output
-  for (int i=0; i<10000; i++) {
-  	float v = i/7000.0;
-  	v = powf(v, 3)* 6;
-  	t_gamma[i] = v*6*256;
-  }
-		
+    m_height=480;
+    
+    Init(); // Init OpenNI
 }
 
 /////////////////////////////////////////////////////////
@@ -525,8 +497,6 @@ pix_openni :: pix_openni(int argc, t_atom *argv)
 /////////////////////////////////////////////////////////
 pix_openni :: ~pix_openni()
 { 
-	destroy_thread = true;
-	//pthread_detach(openni_thread);
 	
 	g_context.StopGeneratingAll();
 	
@@ -545,129 +515,93 @@ pix_openni :: ~pix_openni()
 		g_UserGenerator.Release();
 	}
 	
+
 	g_context.Release();
-	
-	//g_context.Shutdown();
-	
-	//g_context.StopGeneratingAll();
-	//g_context.ContextRelease(g_context);
+    g_Device.Release();
+    
 }
 
 /////////////////////////////////////////////////////////
-// Thread Function
+// Init OpenNI
 //
 /////////////////////////////////////////////////////////
-#if 0
-void *pix_openni::openni_thread_func(void*target)
+
+bool pix_openni :: Init()
 {
-	pix_openni *me = (pix_openni*) target;
-	while (!me->destroy_thread) {
-		if (me->openni_ready)
-		{
-			XnStatus rc = XN_STATUS_OK;
-			//rc = g_context.WaitNoneUpdateAll();
-			//if (rc != XN_STATUS_OK)
-			//{
-				//me->post("Read failed: %s\n", xnGetStatusString(rc));
-			//} else {
-				////post("Read: %s\n", xnGetStatusString(rc));
-			//}
-			
-			if (me->skeleton_wanted && !me->skeleton_started)
-			{
-				me->post("trying to start skeleton...");
-
-					rc = g_UserGenerator.Create(g_context);
-					if (rc != XN_STATUS_OK)
-					{
-						me->post("OpenNI:: skeleton node couldn't be created! %s", xnGetStatusString(rc));
-						me->skeleton_wanted = false;
-					} else {
-						XnCallbackHandle hUserCallbacks, hCalibrationStart, hCalibrationComplete, hPoseDetected, hCalibrationInProgress, hPoseInProgress;
-						if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON))
-						{
-							me->post("Supplied user generator doesn't support skeleton\n");
-                            me->skeleton_wanted = false;
-						}
-						
-						rc = g_UserGenerator.RegisterUserCallbacks(User_NewUser, User_LostUser, me, hUserCallbacks);
-						me->post("Register to user callbacks", rc);
-						rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationStart(UserCalibration_CalibrationStart, me, hCalibrationStart);
-						me->post("Register to calibration start", rc);
-						rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationComplete(UserCalibration_CalibrationComplete, me, hCalibrationComplete);
-						me->post("Register to calibration complete", rc);
-
-						if (g_UserGenerator.GetSkeletonCap().NeedPoseForCalibration())
-						{
-							g_bNeedPose = TRUE;
-							if (!g_UserGenerator.IsCapabilitySupported(XN_CAPABILITY_POSE_DETECTION))
-							{
-								me->post("Pose required, but not supported\n");
-							}
-							rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseDetected(UserPose_PoseDetected, me, hPoseDetected);
-							me->post("Register to Pose Detected", rc);
-							g_UserGenerator.GetSkeletonCap().GetCalibrationPose(g_strPose);
-						}
-
-						g_UserGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_ALL);
-
-						//rc = g_UserGenerator.GetSkeletonCap().RegisterToCalibrationInProgress(MyCalibrationInProgress, NULL, hCalibrationInProgress);
-						me->post("Register to calibration in progress", rc);
-
-						//rc = g_UserGenerator.GetPoseDetectionCap().RegisterToPoseInProgress(MyPoseInProgress, NULL, hPoseInProgress);
-						me->post("Register to pose in progress", rc);
-						
-						g_context.StartGeneratingAll();
-						
-						me->skeleton_started = true;
-					}
-			}
-			
-			if (!me->skeleton_wanted && me->skeleton_started)
-			{
-				g_UserGenerator.Release();
-				me->skeleton_started = false;
-			}
-			
-			
-			if (me->skeleton_started)
-			{
-				// SCELETON OUTPUT
-				float jointCoords[3];
-				
-				XnSkeletonJointTransformation jointTrans;
-				
-				XnUserID aUsers[15];
-				XnUInt16 nUsers = 15;
-				g_UserGenerator.GetUsers(aUsers, nUsers);
-				
-				t_atom ap[4];
-				
-				
-				for (int i = 0; i < nUsers; ++i) {
-					if (g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i])) {
-						g_UserGenerator.GetSkeletonCap().GetSkeletonJoint(aUsers[i], XN_SKEL_LEFT_HAND, jointTrans);
-						
-						for(int j = 0; j <= 24; ++j)
-						{
-							me->outputJoint(aUsers[i], (XnSkeletonJoint) j);
-							//me->post("got joint");
-						}
-					}
-				}
-			}
-		}
+    XnStatus rc;  // ERROR STATUS
 	
-		// struct timespec test;	/*nanosleep brauch das timespec Structure*/
-
-		// test.tv_sec  = 0;		/*was tv_sec und tv_nsec (Sek. und Nanosek.) enthält*/
-		// test.tv_nsec = 5000;
-		// nanosleep(&test,NULL);
-	}
-	me->post("freenect thread ended");
-	return 0;
+    //// INIT IN CODE::
+    
+    //Context context;
+    rc = g_context.Init(); // key difference: Init() not InitFromXml()
+    if (rc != XN_STATUS_OK)
+    {
+        post("OPEN NI init() failed.");
+    } else {
+        post("OPEN NI initialised successfully.");
+        openni_ready = true;
+    }
+	
+    if (openni_ready)
+    {
+        EnumerationErrors errors;
+        XnStatus nRetVal;  // ERROR STATUS
+        // find devices
+        NodeInfoList list;
+        nRetVal = g_context.EnumerateProductionTrees(XN_NODE_TYPE_DEVICE, NULL, list, &errors);
+        //XN_IS_STATUS_OK(nRetVal);
+        
+        post("The following devices were found:");
+        int i = 1;
+        for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it, ++i)
+        {
+            NodeInfo deviceNodeInfo = *it;
+            
+            Device deviceNode;
+            deviceNodeInfo.GetInstance(deviceNode);
+            XnBool bExists = deviceNode.IsValid();
+            if (!bExists)
+            {
+                g_context.CreateProductionTree(deviceNodeInfo, deviceNode);
+                // this might fail.
+            }
+            
+            if (deviceNode.IsValid() && deviceNode.IsCapabilitySupported(XN_CAPABILITY_DEVICE_IDENTIFICATION))
+            {
+                const XnUInt32 nStringBufferSize = 200;
+                XnChar strDeviceName[nStringBufferSize];
+                XnChar strSerialNumber[nStringBufferSize];
+                
+                XnUInt32 nLength = nStringBufferSize;
+                deviceNode.GetIdentificationCap().GetDeviceName(strDeviceName, nLength);
+                nLength = nStringBufferSize;
+                deviceNode.GetIdentificationCap().GetSerialNumber(strSerialNumber, nLength);
+                post("[%d] %s (%s)", i, strDeviceName, strSerialNumber);
+            }
+            else
+            {
+                post("[%d] %s", i, deviceNodeInfo.GetCreationInfo());
+            }
+            
+            // release the device if we created it
+            if (!bExists && deviceNode.IsValid())
+            {
+                deviceNode.Release();
+            }
+        }
+        
+        // select device
+        
+        NodeInfoList::Iterator it = list.Begin();
+        for (i = 1; i < device_id; ++i)
+        {
+            it++;
+        }
+        
+        NodeInfo deviceNode = *it;
+        rc = g_context.CreateProductionTree(deviceNode, g_Device);
+    }
 }
-#endif
 
 /////////////////////////////////////////////////////////
 // startRendering
@@ -1371,8 +1305,53 @@ void pix_openni :: DepthModeMess (int argc, t_atom*argv)
 void pix_openni :: bangMess ()
 {
 	// OUTPUT OPENNI DEVICES OPENED
-	int nRetVal;
-
+    
+    EnumerationErrors errors;
+    XnStatus nRetVal;  // ERROR STATUS
+    // find devices
+    NodeInfoList list;
+    nRetVal = g_context.EnumerateProductionTrees(XN_NODE_TYPE_DEVICE, NULL, list, &errors);
+    //XN_IS_STATUS_OK(nRetVal);
+    
+    post("The following devices were found:");
+    int i = 1;
+    for (NodeInfoList::Iterator it = list.Begin(); it != list.End(); ++it, ++i)
+    {
+        NodeInfo deviceNodeInfo = *it;
+        
+        Device deviceNode;
+        deviceNodeInfo.GetInstance(deviceNode);
+        XnBool bExists = deviceNode.IsValid();
+        if (!bExists)
+        {
+            g_context.CreateProductionTree(deviceNodeInfo, deviceNode);
+            // this might fail.
+        }
+        
+        if (deviceNode.IsValid() && deviceNode.IsCapabilitySupported(XN_CAPABILITY_DEVICE_IDENTIFICATION))
+        {
+            const XnUInt32 nStringBufferSize = 200;
+            XnChar strDeviceName[nStringBufferSize];
+            XnChar strSerialNumber[nStringBufferSize];
+            
+            XnUInt32 nLength = nStringBufferSize;
+            deviceNode.GetIdentificationCap().GetDeviceName(strDeviceName, nLength);
+            nLength = nStringBufferSize;
+            deviceNode.GetIdentificationCap().GetSerialNumber(strSerialNumber, nLength);
+            post("[%d] %s (%s)", i, strDeviceName, strSerialNumber);
+        }
+        else
+        {
+            post("[%d] %s", i, deviceNodeInfo.GetCreationInfo());
+        }
+        
+        // release the device if we created it
+        if (!bExists && deviceNode.IsValid())
+        {
+            deviceNode.Release();
+        }
+    }
+    
 	NodeInfoList devicesList;
 	nRetVal = g_context.EnumerateExistingNodes(devicesList, XN_NODE_TYPE_DEVICE);
 	if (nRetVal != XN_STATUS_OK)
@@ -1384,13 +1363,16 @@ void pix_openni :: bangMess ()
 	{
 		post("OpenNI:: no device available!");
 	}
-	int i=0;
 	for (NodeInfoList::Iterator it = devicesList.Begin(); it != devicesList.End(); ++it, ++i)
 	{
 				// Create the device node
 		NodeInfo deviceInfo = *it;
-
-		post ("Opened Device: %s", deviceInfo.GetInstanceName());
+        const XnUInt32 nStringBufferSize = 200;
+        XnChar strDeviceName[nStringBufferSize];
+        
+        g_Device.GetIdentificationCap().GetDeviceName(strDeviceName,nStringBufferSize);
+        
+		post ("Opened Device: [%i] %s", device_id, strDeviceName);
 
 	}
 
@@ -1536,12 +1518,12 @@ void pix_openni :: StartUserMessCallback(void *data, t_symbol*s, int argc, t_ato
 		if (argc == 0) // start all users
 		{
 			XnUserID aUsers[15];
-			XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
-			g_UserGenerator.GetUsers(aUsers, nUsers);
+			XnUInt16 nUsers = me->g_UserGenerator.GetNumberOfUsers();
+			me->g_UserGenerator.GetUsers(aUsers, nUsers);
 			for (int i = 0; i < nUsers; ++i) {
-				if (!g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
+				if (!me->g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]))
 				{
-					nRetVal=g_UserGenerator.GetSkeletonCap().RequestCalibration(aUsers[i], TRUE);
+					nRetVal=me->g_UserGenerator.GetSkeletonCap().RequestCalibration(aUsers[i], TRUE);
 					me->post("OpenNI:: request user calibration nr %i: %s", aUsers[i], xnGetStatusString(nRetVal));
 				}
 			}
@@ -1549,7 +1531,7 @@ void pix_openni :: StartUserMessCallback(void *data, t_symbol*s, int argc, t_ato
 
 		if (argc == 1 && argv->a_type==A_FLOAT)
 		{
-				nRetVal=g_UserGenerator.GetSkeletonCap().RequestCalibration((XnUserID)atom_getint(&argv[0]), TRUE);
+				nRetVal=me->g_UserGenerator.GetSkeletonCap().RequestCalibration((XnUserID)atom_getint(&argv[0]), TRUE);
 				me->post("OpenNI:: request user calibration nr %i: %s", atom_getint(&argv[0]), xnGetStatusString(nRetVal));
 		}
 	}
@@ -1565,17 +1547,17 @@ void pix_openni :: StopUserMessCallback(void *data, t_symbol*s, int argc, t_atom
 		if (argc == 0) // reset all users
 		{
 			XnUserID aUsers[15];
-			XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
-			g_UserGenerator.GetUsers(aUsers, nUsers);
+			XnUInt16 nUsers = me->g_UserGenerator.GetNumberOfUsers();
+			me->g_UserGenerator.GetUsers(aUsers, nUsers);
 			for (int i = 0; i < nUsers; ++i) {
-				nRetVal = g_UserGenerator.GetSkeletonCap().Reset(aUsers[i]);
+				nRetVal = me->g_UserGenerator.GetSkeletonCap().Reset(aUsers[i]);
 				me->post("OpenNI:: stop user nr %i: %s", aUsers[i], xnGetStatusString(nRetVal));
 			}
 		}
 
 		if (argc == 1 && argv->a_type==A_FLOAT)
 		{
-				nRetVal = g_UserGenerator.GetSkeletonCap().Reset((XnUserID)atom_getint(&argv[0]));
+				nRetVal = me->g_UserGenerator.GetSkeletonCap().Reset((XnUserID)atom_getint(&argv[0]));
 				me->post("OpenNI:: stop user nr %i: %s", atom_getint(&argv[0]), xnGetStatusString(nRetVal));
 		}
 	}
@@ -1589,8 +1571,8 @@ void pix_openni :: UserInfoMessCallback(void *data)
 	if (me->usergen_started)
 	{
 		XnUserID aUsers[15];
-		XnUInt16 nUsers = g_UserGenerator.GetNumberOfUsers();
-		g_UserGenerator.GetUsers(aUsers, nUsers);
+		XnUInt16 nUsers = me->g_UserGenerator.GetNumberOfUsers();
+		me->g_UserGenerator.GetUsers(aUsers, nUsers);
 		
 		t_atom ap[2];
 		SETFLOAT (ap, (int)nUsers);
@@ -1620,10 +1602,10 @@ void pix_openni :: UserInfoMessCallback(void *data)
 		{		
 			t_atom ap[5];
 			SETFLOAT (ap, (int)aUsers[i]);
-			SETFLOAT (ap+1, (int)g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]));
+			SETFLOAT (ap+1, (int)me->g_UserGenerator.GetSkeletonCap().IsTracking(aUsers[i]));
 			
 			XnPoint3D com; // get center of mass
-			g_UserGenerator.GetCoM(aUsers[i],com);
+			me->g_UserGenerator.GetCoM(aUsers[i],com);
 			
 			if (!me->m_real_world_coords)
 			{
@@ -1661,23 +1643,23 @@ void pix_openni :: floatRecordMessCallback(void *data, t_floatarg value)
 	//me->post("filename: %s", me->m_filename.data());
 	if (((int)value == 1) && (me->m_filename.data() != ""))
 	{
-		nRetVal = g_context.FindExistingNode(XN_NODE_TYPE_PLAYER, g_recorder);
+		nRetVal = me->g_context.FindExistingNode(XN_NODE_TYPE_PLAYER, me->g_recorder);
 		me->post("found recorder? %s", xnGetStatusString(nRetVal));
-		nRetVal=g_recorder.Create(g_context);
+		nRetVal=me->g_recorder.Create(me->g_context);
 		me->post("created recorder. %s", xnGetStatusString(nRetVal));
 		
-		nRetVal=g_recorder.SetDestination(XN_RECORD_MEDIUM_FILE, me->m_filename.data()); // set filename
+		nRetVal=me->g_recorder.SetDestination(XN_RECORD_MEDIUM_FILE, me->m_filename.data()); // set filename
 		me->post("set file name. %s", xnGetStatusString(nRetVal));
 		
         if (me->rgb_started)
         {
-            nRetVal = g_recorder.AddNodeToRecording(g_image, XN_CODEC_JPEG);
+            nRetVal = me->g_recorder.AddNodeToRecording(me->g_image, XN_CODEC_JPEG);
             me->post("added image node. %s", xnGetStatusString(nRetVal));
         }
         
         if (me->depth_started)
         {
-            nRetVal = g_recorder.AddNodeToRecording(g_depth, XN_CODEC_16Z_EMB_TABLES);
+            nRetVal = me->g_recorder.AddNodeToRecording(me->g_depth, XN_CODEC_16Z_EMB_TABLES);
             me->post("added depth node. %s", xnGetStatusString(nRetVal));
         }
         /*
@@ -1702,7 +1684,7 @@ void pix_openni :: floatRecordMessCallback(void *data, t_floatarg value)
 	
 	if ((int)value == 0)
 	{
-		g_recorder.Release();
+		me->g_recorder.Release();
 		me->post("recording stopped.");
         me->m_recorder = false;
 	}
@@ -1728,31 +1710,31 @@ void pix_openni :: floatPlayMessCallback(void *data, t_floatarg value)
         }
         if (me->depth_started)
         {
-            g_depth.Release();
+            me->g_depth.Release();
             me->depth_started = false;
         }
 		
         if (me->rgb_started)
         {
-            g_image.Release();
+            me->g_image.Release();
             me->rgb_started = false;
         }
         
         if (me->usergen_started)
         {
-            g_UserGenerator.Release();
+            me->g_UserGenerator.Release();
             me->usergen_started = false;
             me->skeleton_started = false;
         }
         
         if (me->hand_started)
         {
-            gestureGenerator.Release();
-            g_HandsGenerator.Release();
+            me->gestureGenerator.Release();
+            me->g_HandsGenerator.Release();
             me->hand_started = false;
         }
         
-		nRetVal = g_context.OpenFileRecording(me->m_filename.data(), g_player);
+		nRetVal = me->g_context.OpenFileRecording(me->m_filename.data(), me->g_player);
         me->post("opened file recording? %s", xnGetStatusString(nRetVal));
         
         if (nRetVal == XN_STATUS_OK) {
@@ -1766,35 +1748,38 @@ void pix_openni :: floatPlayMessCallback(void *data, t_floatarg value)
 	
 	if ((int)value == 0)
 	{
+        // reinitialize everything
         me->openni_ready = false;
         if (me->depth_started)
         {
-            g_depth.Release();
+            me->g_depth.Release();
             me->depth_started = false;
         }
 		
         if (me->rgb_started)
         {
-            g_image.Release();
+            me->g_image.Release();
             me->rgb_started = false;
         }
         
         if (me->usergen_started)
         {
-            g_UserGenerator.Release();
+            me->g_UserGenerator.Release();
             me->usergen_started = false;
             me->skeleton_started = false;
         }
         
         if (me->hand_started)
         {
-            g_HandsGenerator.Release();
-            gestureGenerator.Release();
+            me->g_HandsGenerator.Release();
+            me->gestureGenerator.Release();
             me->hand_started = false;
         }
-        g_player.Release();
+        me->g_player.Release();
+        me->g_Device.Release();
+        me->g_context.Release();
         
-        nRetVal = g_context.Init();
+        nRetVal = me->Init();
 		if (nRetVal != XN_STATUS_OK)
 		{
 			me->post("OPEN NI init() failed.");
@@ -1811,7 +1796,7 @@ void pix_openni :: floatPlaybackSpeedMessCallback(void *data, t_floatarg value)
   pix_openni *me = (pix_openni*)GetMyClass(data);
 	int nRetVal = 0;
 	//me->post("filename: %s", me->m_filename.data());
-	g_player.SetPlaybackSpeed((double)value);
+	me->g_player.SetPlaybackSpeed((double)value);
 }
 
 void pix_openni :: floatJumpToImageFrameMessCallback(void *data, t_floatarg value)
@@ -1820,9 +1805,9 @@ void pix_openni :: floatJumpToImageFrameMessCallback(void *data, t_floatarg valu
 	int nRetVal = 0;
 
 	const XnChar* strNodeName = NULL;
-	strNodeName = g_image.GetName();
+	strNodeName = me->g_image.GetName();
 
-	g_player.SeekToFrame(strNodeName,(XnUInt32)value,XN_PLAYER_SEEK_SET);
+	me->g_player.SeekToFrame(strNodeName,(XnUInt32)value,XN_PLAYER_SEEK_SET);
 }
 
 void pix_openni :: floatJumpToDepthFrameMessCallback(void *data, t_floatarg value)
@@ -1831,9 +1816,9 @@ void pix_openni :: floatJumpToDepthFrameMessCallback(void *data, t_floatarg valu
 	int nRetVal = 0;
 
 	const XnChar* strNodeName = NULL;
-	strNodeName = g_depth.GetName();
+	strNodeName = me->g_depth.GetName();
 
-	g_player.SeekToFrame(strNodeName,(XnUInt32)value,XN_PLAYER_SEEK_SET);
+	me->g_player.SeekToFrame(strNodeName,(XnUInt32)value,XN_PLAYER_SEEK_SET);
 }
 
 void pix_openni :: openMessCallback(void *data, std::string filename)
@@ -1855,9 +1840,9 @@ void pix_openni :: floatRegistrationMessCallback(void *data, t_floatarg value)
 	int nRetVal = 0;
 	if ((int)value == 1 && me->rgb_started && me->depth_started)
 	{
-		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		if (me->g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 		{
-			nRetVal = g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
+			nRetVal = me->g_depth.GetAlternativeViewPointCap().SetViewPoint(me->g_image);
 		}
 		me->m_registration=true;
 		me->m_registration_wanted=true;
@@ -1866,9 +1851,9 @@ void pix_openni :: floatRegistrationMessCallback(void *data, t_floatarg value)
 	
 	if ((int)value == 0 && me->depth_started)
 	{
-		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		if (me->g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 		{
-			nRetVal = g_depth.GetAlternativeViewPointCap().ResetViewPoint();
+			nRetVal = me->g_depth.GetAlternativeViewPointCap().ResetViewPoint();
 		}
 		me->m_registration=false;
 		me->m_registration_wanted=false;
@@ -1882,9 +1867,9 @@ void pix_openni :: floatRgbRegistrationMessCallback(void *data, t_floatarg value
 	int nRetVal = 0;
 	if ((int)value == 1 && me->rgb_started && me->depth_started)
 	{
-		if (g_image.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		if (me->g_image.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 		{
-			nRetVal = g_image.GetAlternativeViewPointCap().SetViewPoint(g_depth);
+			nRetVal = me->g_image.GetAlternativeViewPointCap().SetViewPoint(me->g_depth);
 		}
 		me->m_registration=true;
 		me->post("not working now - changed to registered rgb mode. %s", xnGetStatusString(nRetVal));
@@ -1892,9 +1877,9 @@ void pix_openni :: floatRgbRegistrationMessCallback(void *data, t_floatarg value
 	
 	if ((int)value == 0 && me->depth_started)
 	{
-		if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+		if (me->g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
 		{
-			nRetVal = g_image.GetAlternativeViewPointCap().ResetViewPoint();
+			nRetVal = me->g_image.GetAlternativeViewPointCap().ResetViewPoint();
 		}
 		me->m_registration=false;
 		me->post("not working now - changed to unregistered rgb mode. %s", xnGetStatusString(nRetVal));
@@ -1917,7 +1902,7 @@ void pix_openni :: floatHandSmoothingMessCallback(void *data, t_floatarg value)
 	{
 		if (me->hand_started)
 		{
-			g_HandsGenerator.SetSmoothing(value);
+			me->g_HandsGenerator.SetSmoothing(value);
 		}
 		me->m_hand_smoothing=value;
 	}
@@ -1930,7 +1915,7 @@ void pix_openni :: floatSkeletonSmoothingMessCallback(void *data, t_floatarg val
 	{
 		if (me->skeleton_started)
 		{
-			g_UserGenerator.GetSkeletonCap().SetSmoothing(value);
+			me->g_UserGenerator.GetSkeletonCap().SetSmoothing(value);
 		}
 		me->m_skeleton_smoothing=value;
 	}

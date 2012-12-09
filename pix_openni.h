@@ -36,9 +36,8 @@ LOG
 #include "Gem/Image.h"
 #include "Base/GemPixObj.h"
 
-#include <pthread.h>
 
-
+using namespace xn;
 /*-----------------------------------------------------------------
 -------------------------------------------------------------------
 CLASS
@@ -64,7 +63,9 @@ class GEM_EXTERN pix_openni : public GemBase
 	    //////////
 	    // Constructor
     	pix_openni(int argc, t_atom *argv);
-    	
+    
+        bool Init();
+    
     	t_outlet 	*m_dataout;
 			
 			void 				outputJoint (XnUserID player, XnSkeletonJoint eJoint);
@@ -73,7 +74,26 @@ class GEM_EXTERN pix_openni : public GemBase
 			bool m_real_world_coords;
 			bool m_output_euler;
 			bool m_auto_calibration;
-			
+    
+    Context g_context;
+    Device g_Device;
+    ScriptNode g_scriptNode;
+    DepthGenerator g_depth;
+    ImageGenerator g_image;
+    DepthMetaData g_depthMD;
+    ImageMetaData g_imageMD;
+    SceneMetaData g_sceneMD;
+    
+    Recorder g_recorder;
+    
+    UserGenerator g_UserGenerator;
+    Player g_player;
+    
+    HandsGenerator g_HandsGenerator;
+    GestureGenerator gestureGenerator;
+    
+    int device_id;
+    
     protected:
     	
     	//////////
@@ -98,8 +118,6 @@ class GEM_EXTERN pix_openni : public GemBase
     	void	    	bangMess();
     	
 			void				renderDepth(int argc, t_atom*argv);
-
-			static void* openni_thread_func(void*);
 			
 			
   // Settings
@@ -131,17 +149,11 @@ class GEM_EXTERN pix_openni : public GemBase
 
 			float m_skeleton_smoothing;
 			float m_hand_smoothing;
-			
-
-    
-      bool destroy_thread; // shutdown...
       
 			int	depth_output;
 			int	req_depth_output;
 			
 			std::string m_filename;
-  
-      uint16_t t_gamma[10000];
         
 			int 		m_width;
 			int			m_height;
@@ -152,8 +164,7 @@ class GEM_EXTERN pix_openni : public GemBase
 			XnChar strRequiredCalibrationPose[XN_MAX_NAME_LENGTH];
 	
 			bool      m_rendering; // "true" when rendering is on, false otherwise
-
-  
+    
     	//////////
     	// The pixBlock with the current image
     	pixBlock    	m_image;
@@ -201,9 +212,7 @@ class GEM_EXTERN pix_openni : public GemBase
     	static void    	renderDepthCallback(void *data, t_symbol*s, int argc, t_atom*argv);
     	
 			t_outlet        *m_depthoutlet; 
-			t_inlet         *m_depthinlet; 
-			
-			pthread_t openni_thread;
+			t_inlet         *m_depthinlet;
 
 };
 
