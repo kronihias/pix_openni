@@ -593,13 +593,19 @@ bool pix_openni :: Init()
         // select device
         
         NodeInfoList::Iterator it = list.Begin();
-        for (i = 1; i < device_id; ++i)
-        {
-            it++;
-        }
-        
-        NodeInfo deviceNode = *it;
-        rc = g_context.CreateProductionTree(deviceNode, g_Device);
+            for (i = 1; i < device_id; ++i)
+            {
+                it++;
+                if (it == list.End()) {
+                    post("ERROR: Kinect Device ID not valid: %i", device_id);
+                    openni_ready = false;
+                    return false;
+                }
+            }
+            
+            NodeInfo deviceNode = *it;
+            rc = g_context.CreateProductionTree(deviceNode, g_Device);
+            return true;
     }
 }
 
@@ -899,16 +905,17 @@ void pix_openni :: render(GemState *state)
 
 void pix_openni :: renderDepth(int argc, t_atom*argv)
 {
+    
 	if (argc==2 && argv->a_type==A_POINTER && (argv+1)->a_type==A_POINTER) // is it gem_state?
 	{
 		depth_state =  (GemState *) (argv+1)->a_w.w_gpointer;
-
-		// start depth stream if wanted or needed by other generator
-		if ((depth_wanted || usergen_wanted || skeleton_wanted || hand_wanted) && !depth_started)
-		{
-			post("trying to start depth stream");
-			if (openni_ready)
-			{
+        if (openni_ready)
+        {
+            // start depth stream if wanted or needed by other generator
+            if ((depth_wanted || usergen_wanted || skeleton_wanted || hand_wanted) && !depth_started)
+            {
+                
+                post("trying to start depth stream");
 				XnStatus rc;
 				rc = g_depth.Create(g_context);
 				if (rc != XN_STATUS_OK)
@@ -924,111 +931,111 @@ void pix_openni :: renderDepth(int argc, t_atom*argv)
 					depth_started = true;
 					g_context.StartGeneratingAll();
 					post("OpenNI:: Depth node created!");
-
+                    
 					m_depth.image.xsize = mapMode.nXRes;
 					m_depth.image.ysize = mapMode.nYRes;
 					m_depth.image.setCsizeByFormat(GL_RGBA);
 					m_depth.image.reallocate();
 				}
-			}
-		}
-
-		if (!depth_wanted && depth_started)
-		{
-			//g_depth.Release();
-			depth_started = false;
-		}
-		
-		if (m_registration_wanted && rgb_started && depth_started && !m_registration) // set registration if wanted
-		{
-			if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
-			{
-				g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
-				m_registration=true;
-			}
-		}
-		
-		if (depth_wanted && depth_started) //DEPTH OUTPUT
-		{
-			g_depth.GetMetaData(g_depthMD);
-			
-			if (g_depthMD.IsDataNew()) // new data??
-			{
-				// check if depth output request changed -> reallocate image_struct
-				if (req_depth_output != depth_output)
-				{
-					if (req_depth_output == 0)
-					{
-						m_depth.image.setCsizeByFormat(GL_RGBA);
-					}
-					if (req_depth_output == 1)
-					{
-						m_depth.image.setCsizeByFormat(GL_YCBCR_422_GEM);
-					}
-					m_depth.image.reallocate();
-					depth_output=req_depth_output;
-				}
-
-				const XnLabel* pLabels = NULL;
-			// user coloring -> get pixelmap with userid
-				if (usergen_started && m_usercoloring)
-				{
-					g_UserGenerator.GetUserPixels(0, g_sceneMD);
-				}
-				pLabels = g_sceneMD.Data();
-
-			//const XnDepthPixel* pDepth = g_depthMD.Data();
-				const XnDepthPixel* pDepth = g_depth.GetDepthMap(); 
-
-				if (depth_output == 0) // RAW RGBA -> R 8 MSB, G 8 LSB of 16 bit depth value, B->userid if usergen 1 and usercoloring 1
-				{
-					uint8_t *pixels = m_depth.image.data;
-
-					uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
-
-					for(int y = 0; y < 640*480; y++) {
-						pixels[chRed]=(uint8_t)(depth_pixel[y] >> 8);
-						pixels[chGreen]=(uint8_t)(depth_pixel[y] & 0xff);
-						// user coloring
-						XnLabel label = 0;
-						if (usergen_started && m_usercoloring)
-						{
-							label = *pLabels;
-						}
-						pixels[chBlue]=label; // set user id to b channel
-						pixels[chAlpha]=255; // set alpha
-						
-						pixels+=4;
-						pLabels++;
-					}
-
-				}
-
-				if (depth_output == 1) // RAW YUV -> 16 bit Depth
-				{
-					const XnDepthPixel* pDepth = g_depthMD.Data();
-					m_depth.image.data= (unsigned char*)&pDepth[0];
-				}
-				
-				m_depth.newimage = 1;
-				m_depth.image.notowned = true;
-				m_depth.image.upsidedown=true;
-			
-			} else { // no new depthmap from openni
+            }
+            
+            if (!depth_wanted && depth_started)
+            {
+                //g_depth.Release();
+                depth_started = false;
+            }
+            
+            if (m_registration_wanted && rgb_started && depth_started && !m_registration) // set registration if wanted
+            {
+                if (g_depth.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT))
+                {
+                    g_depth.GetAlternativeViewPointCap().SetViewPoint(g_image);
+                    m_registration=true;
+                }
+            }
+            
+            if (depth_wanted && depth_started) //DEPTH OUTPUT
+            {
+                g_depth.GetMetaData(g_depthMD);
+                
+                if (g_depthMD.IsDataNew()) // new data??
+                {
+                    // check if depth output request changed -> reallocate image_struct
+                    if (req_depth_output != depth_output)
+                    {
+                        if (req_depth_output == 0)
+                        {
+                            m_depth.image.setCsizeByFormat(GL_RGBA);
+                        }
+                        if (req_depth_output == 1)
+                        {
+                            m_depth.image.setCsizeByFormat(GL_YCBCR_422_GEM);
+                        }
+                        m_depth.image.reallocate();
+                        depth_output=req_depth_output;
+                    }
+                    
+                    const XnLabel* pLabels = NULL;
+                    // user coloring -> get pixelmap with userid
+                    if (usergen_started && m_usercoloring)
+                    {
+                        g_UserGenerator.GetUserPixels(0, g_sceneMD);
+                    }
+                    pLabels = g_sceneMD.Data();
+                    
+                    //const XnDepthPixel* pDepth = g_depthMD.Data();
+                    const XnDepthPixel* pDepth = g_depth.GetDepthMap();
+                    
+                    if (depth_output == 0) // RAW RGBA -> R 8 MSB, G 8 LSB of 16 bit depth value, B->userid if usergen 1 and usercoloring 1
+                    {
+                        uint8_t *pixels = m_depth.image.data;
+                        
+                        uint16_t *depth_pixel = (uint16_t*)g_depthMD.Data();
+                        
+                        for(int y = 0; y < 640*480; y++) {
+                            pixels[chRed]=(uint8_t)(depth_pixel[y] >> 8);
+                            pixels[chGreen]=(uint8_t)(depth_pixel[y] & 0xff);
+                            // user coloring
+                            XnLabel label = 0;
+                            if (usergen_started && m_usercoloring)
+                            {
+                                label = *pLabels;
+                            }
+                            pixels[chBlue]=label; // set user id to b channel
+                            pixels[chAlpha]=255; // set alpha
+                            
+                            pixels+=4;
+                            pLabels++;
+                        }
+                        
+                    }
+                    
+                    if (depth_output == 1) // RAW YUV -> 16 bit Depth
+                    {
+                        const XnDepthPixel* pDepth = g_depthMD.Data();
+                        m_depth.image.data= (unsigned char*)&pDepth[0];
+                    }
+                    
+                    m_depth.newimage = 1;
+                    m_depth.image.notowned = true;
+                    m_depth.image.upsidedown=true;
+                    
+                } else { // no new depthmap from openni
 					m_depth.newimage = 0;
-			}
-
-			depth_state->set(GemState::_PIX, &m_depth);
-
-			t_atom ap[2];
-			ap->a_type=A_POINTER;
-			ap->a_w.w_gpointer=(t_gpointer *)m_cache;  // the cache ?
-			(ap+1)->a_type=A_POINTER;
-			(ap+1)->a_w.w_gpointer=(t_gpointer *)depth_state;
-			outlet_anything(m_depthoutlet, gensym("gem_state"), 2, ap);
-
-		}
-	}
+                }
+                
+                depth_state->set(GemState::_PIX, &m_depth);
+                
+                t_atom ap[2];
+                ap->a_type=A_POINTER;
+                ap->a_w.w_gpointer=(t_gpointer *)m_cache;  // the cache ?
+                (ap+1)->a_type=A_POINTER;
+                (ap+1)->a_w.w_gpointer=(t_gpointer *)depth_state;
+                outlet_anything(m_depthoutlet, gensym("gem_state"), 2, ap);
+                
+            }
+        }
+    }
 }
 
 ///////////////////////////////////////
@@ -1779,8 +1786,7 @@ void pix_openni :: floatPlayMessCallback(void *data, t_floatarg value)
         me->g_Device.Release();
         me->g_context.Release();
         
-        nRetVal = me->Init();
-		if (nRetVal != XN_STATUS_OK)
+		if (!me->Init())
 		{
 			me->post("OPEN NI init() failed.");
 		} else {

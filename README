@@ -1,5 +1,5 @@
 
-pix_openni (0.11 experimenting...)
+pix_openni (0.12 experimenting...)
 ======================================
 pure data / Gem external to get multiple Kinect rgb and depth streams, single device skeleton tracking and hand tracking
 
