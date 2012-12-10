@@ -593,6 +593,13 @@ bool pix_openni :: Init()
         // select device
         
         NodeInfoList::Iterator it = list.Begin();
+        
+        if (it == list.End()) {
+            post("ERROR: No Device found!");
+            openni_ready = false;
+            //throw(GemException("Init() failed\n"));
+            return false;
+        }
             for (i = 1; i < device_id; ++i)
             {
                 it++;
